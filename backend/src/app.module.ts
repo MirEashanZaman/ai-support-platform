@@ -4,6 +4,8 @@ import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { AnalyticsModule } from './analytics/analytics.module';
 import { AuthModule } from './auth/auth.module';
 import { ChatModule } from './chat/chat.module';
+import { AuditLogModule } from './common/audit/audit-log.service';
+import { validateEnv } from './common/config/env.validation';
 import { Public } from './common/decorators/public.decorator';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
@@ -36,8 +38,10 @@ export class HealthController {
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: ['.env', '../.env'],
+      validate: validateEnv,
     }),
     DatabaseModule,
+    AuditLogModule,
     RedisModule,
     RabbitMqModule,
     EmbeddingsModule,
