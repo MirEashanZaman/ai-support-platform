@@ -3,6 +3,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { AuditLogService } from '../common/audit/audit-log.service';
 import { TenantContextService } from '../common/context/tenant-context.service';
 import { hashSecret } from '../common/crypto/scrypt.util';
 import { Role } from '../common/enums/role.enum';
@@ -15,6 +16,7 @@ export class UsersService {
   constructor(
     private readonly rlsTransaction: RlsTransactionService,
     private readonly tenantContext: TenantContextService,
+    private readonly auditLogService: AuditLogService,
   ) {}
 
   async listTeamMembers(): Promise<
@@ -57,6 +59,16 @@ export class UsersService {
         role: dto.role,
       });
       const saved = await userRepo.save(created);
+      await this.auditLogService.record(
+        {
+          tenantId,
+          actorUserId: this.tenantContext.getStore()?.userId,
+          action: 'audit.user.invited',
+          targetId: saved.id,
+          details: { email: saved.email, role: saved.role },
+        },
+        manager,
+      );
       return {
         id: saved.id,
         tenantId: saved.tenantId,
@@ -74,8 +86,19 @@ export class UsersService {
       if (!user) {
         throw new NotFoundException('Team member not found in your workspace');
       }
+      const previousRole = user.role;
       user.role = role;
       const saved = await userRepo.save(user);
+      await this.auditLogService.record(
+        {
+          tenantId: saved.tenantId,
+          actorUserId: this.tenantContext.getStore()?.userId,
+          action: 'audit.user.role_changed',
+          targetId: saved.id,
+          details: { previousRole, newRole: saved.role },
+        },
+        manager,
+      );
       return {
         id: saved.id,
         tenantId: saved.tenantId,
