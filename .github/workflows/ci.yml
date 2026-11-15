@@ -1,0 +1,40 @@
+name: CI — Lint, Build & Tenant Isolation Tests
+
+on:
+  push:
+    branches: [main, master, develop]
+  pull_request:
+    branches: [main, master, develop]
+
+jobs:
+  backend-verify:
+    name: Backend (Lint, Build & Postgres RLS Tests)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ./backend
+        run: npm ci
+
+      - name: Run ESLint
+        working-directory: ./backend
+        run: npm run lint
+
+      - name: Build NestJS Backend
+        working-directory: ./backend
+        run: npm run build
+
+      - name: Run Unit & Postgres RLS Tenant Isolation Tests
+        working-directory: ./backend
+        run: npm test
+
