@@ -1,0 +1,9 @@
+{
+  "name": "@ai-support-platform/shared",
+  "version": "1.0.0",
+  "description": "Shared Zod validation schemas and TypeScript types for backend, dashboard, and widget",
+  "main": "index.ts",
+  "types": "index.ts",
+  "private": true,
+  "license": "MIT"
+}
