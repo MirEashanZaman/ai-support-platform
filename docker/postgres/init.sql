@@ -1,0 +1,20 @@
+-- Enable pgvector and UUID generation extensions
+CREATE EXTENSION IF NOT EXISTS vector;
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
+-- Create a non-superuser role so PostgreSQL Row-Level Security (RLS) policies
+-- are strictly enforced on all queries executed by this role.
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'app_tenant_user') THEN
+    CREATE ROLE app_tenant_user WITH LOGIN PASSWORD 'app_tenant_password' NOSUPERUSER NOCREATEDB NOCREATEROLE;
+  END IF;
+END
+$$;
+
+GRANT CONNECT ON DATABASE ai_support_platform TO app_tenant_user;
+GRANT USAGE ON SCHEMA public TO app_tenant_user;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO app_tenant_user;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT USAGE, SELECT ON SEQUENCES TO app_tenant_user;
+
