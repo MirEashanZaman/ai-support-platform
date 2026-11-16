@@ -122,23 +122,194 @@ export default function DashboardHomePage() {
 
   return (
     <div style={{ display: 'grid', gap: 22 }}>
-      {/* How the Platform Works Banner */}
+      {/* How the Platform Works Visual Diagram */}
       <section
         style={{
-          background: 'linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%)',
-          color: '#ffffff',
+          background: '#0f172a',
+          color: '#f8fafc',
           padding: 24,
           borderRadius: 14,
+          border: '1px solid #334155',
+          display: 'grid',
+          gap: 18,
         }}
       >
-        <h1 style={{ margin: '0 0 8px 0', fontSize: 22 }}>
-          How This Platform Works: 90% Automated AI + 10% Human Backup
-        </h1>
-        <p style={{ margin: 0, color: '#cbd5e1', fontSize: 14, lineHeight: 1.55 }}>
-          <strong>1. Upload Docs (/documents):</strong> You upload your business PDFs, Markdown FAQs, and URLs. &rarr;{' '}
-          <strong>2. AI Answers Automatically (90% of chats):</strong> The AI answers customer questions in under 1 second using <em>only</em> your documents, showing exact source citations and confidence %. &rarr;{' '}
-          <strong>3. Human Backup (/inbox):</strong> Only when the AI is <em>not confident</em> (or the customer asks for a human) does it escalate to your Live Agent Inbox!
-        </p>
+        <div
+          style={{
+            border: '1px dashed #475569',
+            borderRadius: 12,
+            padding: 16,
+          }}
+        >
+          <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 12 }}>
+            Setup: once per document
+          </div>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 12,
+              flexWrap: 'wrap',
+            }}
+          >
+            <a
+              href="/documents"
+              style={{
+                flex: 1,
+                minWidth: 180,
+                background: '#334155',
+                border: '1px solid #64748b',
+                borderRadius: 10,
+                padding: '12px 16px',
+                textAlign: 'center',
+                color: '#f8fafc',
+                textDecoration: 'none',
+              }}
+            >
+              <div style={{ fontWeight: 700, fontSize: 14 }}>Business owner</div>
+              <div style={{ fontSize: 12, color: '#cbd5e1', marginTop: 2 }}>
+                Uploads documents (/documents)
+              </div>
+            </a>
+            <span style={{ color: '#94a3b8', fontWeight: 700 }}>&rarr;</span>
+            <div
+              style={{
+                flex: 1,
+                minWidth: 180,
+                background: '#312e81',
+                border: '1px solid #6366f1',
+                borderRadius: 10,
+                padding: '12px 16px',
+                textAlign: 'center',
+              }}
+            >
+              <div style={{ fontWeight: 700, fontSize: 14, color: '#e0e7ff' }}>
+                Queue and worker
+              </div>
+              <div style={{ fontSize: 12, color: '#a5b4fc', marginTop: 2 }}>
+                Chunk and embed (RabbitMQ Saga)
+              </div>
+            </div>
+            <span style={{ color: '#94a3b8', fontWeight: 700 }}>&rarr;</span>
+            <div
+              style={{
+                flex: 1,
+                minWidth: 180,
+                background: '#312e81',
+                border: '1px solid #6366f1',
+                borderRadius: 10,
+                padding: '12px 16px',
+                textAlign: 'center',
+              }}
+            >
+              <div style={{ fontWeight: 700, fontSize: 14, color: '#e0e7ff' }}>
+                Vector database
+              </div>
+              <div style={{ fontSize: 12, color: '#a5b4fc', marginTop: 2 }}>
+                pgvector with RLS
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div
+          style={{
+            border: '1px dashed #475569',
+            borderRadius: 12,
+            padding: 16,
+          }}
+        >
+          <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 12 }}>
+            Chat: every question
+          </div>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 12,
+              flexWrap: 'wrap',
+            }}
+          >
+            <div
+              style={{
+                flex: 1,
+                minWidth: 170,
+                background: '#334155',
+                border: '1px solid #64748b',
+                borderRadius: 10,
+                padding: '12px 16px',
+                textAlign: 'center',
+              }}
+            >
+              <div style={{ fontWeight: 700, fontSize: 14 }}>Customer</div>
+              <div style={{ fontSize: 12, color: '#cbd5e1', marginTop: 2 }}>
+                Asks in widget
+              </div>
+            </div>
+            <span style={{ color: '#94a3b8', fontWeight: 700 }}>&rarr;</span>
+            <div
+              style={{
+                flex: 1,
+                minWidth: 190,
+                background: '#312e81',
+                border: '1px solid #6366f1',
+                borderRadius: 10,
+                padding: '12px 16px',
+                textAlign: 'center',
+              }}
+            >
+              <div style={{ fontWeight: 700, fontSize: 14, color: '#e0e7ff' }}>
+                Search and check
+              </div>
+              <div style={{ fontSize: 12, color: '#a5b4fc', marginTop: 2 }}>
+                Claude + top chunks (pgvector RLS)
+              </div>
+            </div>
+            <span style={{ color: '#94a3b8', fontWeight: 700 }}>&rarr;</span>
+            <div
+              style={{
+                flex: 1,
+                minWidth: 210,
+                display: 'grid',
+                gap: 8,
+              }}
+            >
+              <div
+                style={{
+                  background: '#064e3b',
+                  border: '1px solid #10b981',
+                  borderRadius: 10,
+                  padding: '10px 14px',
+                  textAlign: 'center',
+                }}
+              >
+                <div style={{ fontWeight: 700, fontSize: 14, color: '#a7f3d0' }}>
+                  Answer with sources
+                </div>
+                <div style={{ fontSize: 12, color: '#6ee7b7', marginTop: 2 }}>
+                  If confident (Auto-resolved)
+                </div>
+              </div>
+              <a
+                href="/inbox"
+                style={{
+                  background: '#334155',
+                  border: '1px solid #64748b',
+                  borderRadius: 10,
+                  padding: '10px 14px',
+                  textAlign: 'center',
+                  color: '#f8fafc',
+                  textDecoration: 'none',
+                }}
+              >
+                <div style={{ fontWeight: 700, fontSize: 14 }}>Human agent</div>
+                <div style={{ fontSize: 12, color: '#cbd5e1', marginTop: 2 }}>
+                  If unsure or asked (/inbox)
+                </div>
+              </a>
+            </div>
+          </div>
+        </div>
       </section>
 
       {/* Interactive AI Bot Playground (Test Automatic AI Answers vs Escalation) */}
