@@ -203,3 +203,34 @@ export const analyticsApi = {
     return z.array(chatMessageSchema).parse(res.data);
   },
 };
+
+export const authApi = {
+  async signup(payload: {
+    businessName: string;
+    email: string;
+    password: string;
+  }) {
+    const res = await apiClient.post('/auth/signup', payload);
+    if (res.data?.accessToken) {
+      setAccessToken(res.data.accessToken);
+    }
+    return res.data;
+  },
+
+  async login(payload: {
+    email: string;
+    password: string;
+    tenantKey?: string;
+  }) {
+    const res = await apiClient.post('/auth/login', payload);
+    if (res.data?.accessToken) {
+      setAccessToken(res.data.accessToken);
+    }
+    return res.data;
+  },
+
+  async logout() {
+    await apiClient.post('/auth/logout');
+    setAccessToken(null);
+  },
+};
