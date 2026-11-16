@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import {
   agentReplyFormSchema,
   ChatMessageItem,
+  ensureDemoSession,
   handoffApi,
   HandoffQueueItem,
 } from '../../lib/api-client';
@@ -11,31 +12,44 @@ import { connectTenantInboxSocket } from '../../lib/socket-client';
 
 /**
  * Week 4 Deliverable — Live Agent Inbox (FR-5 & PRD Section 6):
+ * - Auto-authenticates into the seeded "Oil Supply" workspace if not yet logged in
  * - Displays escalated conversations (`waiting` and `human` status) in real time
  * - Shows the full conversation transcript so far (Customer, Bot with citations/confidence, Agent)
  * - Allows Support Agents and Owners to Claim a chat, Reply in real time, and Close the ticket
- * - Remind indicator that the AI bot stays strictly silent while a conversation is in `waiting` or `human` mode
  */
 export default function LiveAgentInboxPage() {
-  const [tenantId, setTenantId] = useState<string>('demo-oil-supply-tenant');
+  const [tenantId, setTenantId] = useState<string>('');
   const [queue, setQueue] = useState<HandoffQueueItem[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessageItem[]>([]);
   const [replyText, setReplyText] = useState<string>('');
   const [statusBanner, setStatusBanner] = useState<string>(
-    'Connected to real-time WebSocket inbox (/realtime)',
+    'Connecting to real-time WebSocket inbox (/realtime)...',
   );
   const [validationError, setValidationError] = useState<string | null>(null);
+  const [sending, setSending] = useState<boolean>(false);
 
-  async function loadQueue() {
+  async function loadQueue(preferredId?: string | null) {
     try {
+      const session = await ensureDemoSession();
+      if (session.tenantId && session.tenantId !== tenantId) {
+        setTenantId(session.tenantId);
+      }
       const items = await handoffApi.fetchQueue();
       setQueue(items);
-      if (!selectedId && items.length > 0) {
-        setSelectedId(items[0].id);
+      const targetId = preferredId ?? selectedId ?? items[0]?.id ?? null;
+      if (targetId && targetId !== selectedId) {
+        setSelectedId(targetId);
       }
+      setStatusBanner(
+        `Connected to Live Agent Inbox (Workspace: ${session.tenantKey}) — ${items.length} active escalated chat(s)`,
+      );
+      return items;
     } catch {
-      // Fallback preview state when backend is not yet authenticated in browser preview
+      setStatusBanner(
+        'Waiting for Backend API on http://localhost:4000 ...',
+      );
+      return [];
     }
   }
 
@@ -55,6 +69,8 @@ export default function LiveAgentInboxPage() {
   useEffect(() => {
     if (selectedId) {
       void loadTranscript(selectedId);
+    } else {
+      setMessages([]);
     }
   }, [selectedId]);
 
@@ -65,7 +81,7 @@ export default function LiveAgentInboxPage() {
         setStatusBanner(
           `New escalated chat (${payload.reason}) — Session ${payload.customerSession}`,
         );
-        void loadQueue();
+        void loadQueue(payload.conversationId);
       },
       onClaimed: () => {
         void loadQueue();
@@ -73,14 +89,18 @@ export default function LiveAgentInboxPage() {
       onMessage: (msg) => {
         const typed = msg as ChatMessageItem;
         if (typed && typed.conversationId === selectedId) {
-          setMessages((prev) => [...prev, typed]);
+          setMessages((prev) =>
+            prev.some((m) => m.id === typed.id) ? prev : [...prev, typed],
+          );
         }
         void loadQueue();
       },
       onCustomerMessage: (msg) => {
         const typed = msg as ChatMessageItem;
         if (typed && typed.conversationId === selectedId) {
-          setMessages((prev) => [...prev, typed]);
+          setMessages((prev) =>
+            prev.some((m) => m.id === typed.id) ? prev : [...prev, typed],
+          );
         }
         void loadQueue();
       },
@@ -95,15 +115,20 @@ export default function LiveAgentInboxPage() {
   }, [tenantId, selectedId]);
 
   async function handleClaim(conversationId: string) {
-    await handoffApi.claimChat(conversationId);
-    setStatusBanner(`Claimed conversation ${conversationId}. Bot is muted.`);
-    await loadQueue();
+    try {
+      await handoffApi.claimChat(conversationId);
+      setStatusBanner(
+        `Claimed conversation #${conversationId.slice(0, 8)}. AI bot is muted while you own this chat.`,
+      );
+      await loadQueue(conversationId);
+    } catch {
+      setValidationError('Could not claim conversation. Please try again.');
+    }
   }
 
   async function handleSendReply(e: React.FormEvent) {
     e.preventDefault();
     setValidationError(null);
-    if (!selectedId) return;
 
     const parsed = agentReplyFormSchema.safeParse({ content: replyText });
     if (!parsed.success) {
@@ -111,16 +136,53 @@ export default function LiveAgentInboxPage() {
       return;
     }
 
-    const created = await handoffApi.sendReply(selectedId, parsed.data.content);
-    setReplyText('');
-    setMessages((prev) => [...prev, created]);
-    await loadQueue();
+    setSending(true);
+    try {
+      let targetConversationId = selectedId;
+
+      // If no escalated chat is currently selected or queue was empty, create/select one automatically
+      if (!targetConversationId) {
+        const currentQueue = await handoffApi.fetchQueue();
+        if (currentQueue.length > 0) {
+          targetConversationId = currentQueue[0].id;
+        } else {
+          targetConversationId =
+            await handoffApi.createEscalatedChatForReply();
+        }
+        setSelectedId(targetConversationId);
+      }
+
+      const created = await handoffApi.sendReply(
+        targetConversationId,
+        parsed.data.content,
+      );
+      setReplyText('');
+      setMessages((prev) =>
+        prev.some((m) => m.id === created.id) ? prev : [...prev, created],
+      );
+      setStatusBanner(
+        `Reply sent to conversation #${targetConversationId.slice(0, 8)}!`,
+      );
+      await loadQueue(targetConversationId);
+    } catch (err) {
+      setValidationError(
+        (err as Error)?.message ||
+          'Failed to send reply. Make sure the backend server is running on port 4000.',
+      );
+    } finally {
+      setSending(false);
+    }
   }
 
   async function handleClose(conversationId: string) {
-    await handoffApi.closeChat(conversationId);
-    setStatusBanner(`Closed conversation ${conversationId}.`);
-    await loadQueue();
+    try {
+      await handoffApi.closeChat(conversationId);
+      setStatusBanner(`Closed conversation #${conversationId.slice(0, 8)}.`);
+      setSelectedId(null);
+      await loadQueue(null);
+    } catch {
+      setValidationError('Could not close conversation.');
+    }
   }
 
   const activeConversation = queue.find((q) => q.id === selectedId) ?? null;
@@ -141,18 +203,9 @@ export default function LiveAgentInboxPage() {
         }}
       >
         <span>{statusBanner}</span>
-        <input
-          type="text"
-          value={tenantId}
-          onChange={(e) => setTenantId(e.target.value)}
-          placeholder="Tenant UUID"
-          style={{
-            border: '1px solid #93c5fd',
-            borderRadius: 6,
-            padding: '4px 8px',
-            fontSize: 12,
-          }}
-        />
+        <span style={{ fontSize: 12, fontWeight: 600 }}>
+          {tenantId ? `Tenant ID: ${tenantId.slice(0, 8)}...` : 'Authenticating...'}
+        </span>
       </div>
 
       <div
@@ -180,7 +233,9 @@ export default function LiveAgentInboxPage() {
           </h2>
           {queue.length === 0 ? (
             <p style={{ color: '#64748b', fontSize: 13 }}>
-              No chats currently waiting for human handoff.
+              No chats currently waiting for human handoff. Type a reply on the
+              right to start an agent session, or click &ldquo;Talk to human&rdquo; in the
+              widget!
             </p>
           ) : (
             queue.map((item) => (
@@ -257,8 +312,8 @@ export default function LiveAgentInboxPage() {
             <div>
               <strong style={{ fontSize: 15 }}>
                 {activeConversation
-                  ? `Conversation #${activeConversation.id.slice(0, 8)}`
-                  : 'Select an escalated chat'}
+                  ? `Conversation #${activeConversation.id.slice(0, 8)} (${activeConversation.customerSession})`
+                  : 'Live Support Agent Transcript'}
               </strong>
               <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>
                 AI bot is strictly silent while status is waiting or human (FR-5)
@@ -313,44 +368,51 @@ export default function LiveAgentInboxPage() {
               gap: 10,
             }}
           >
-            {messages.map((msg) => (
-              <div
-                key={msg.id}
-                style={{
-                  alignSelf:
-                    msg.sender === 'customer' ? 'flex-start' : 'flex-end',
-                  background:
-                    msg.sender === 'agent'
-                      ? '#2563eb'
-                      : msg.sender === 'bot'
-                        ? '#f1f5f9'
-                        : '#ffffff',
-                  color: msg.sender === 'agent' ? '#ffffff' : '#0f172a',
-                  border: '1px solid #cbd5e1',
-                  borderRadius: 10,
-                  padding: '10px 14px',
-                  maxWidth: '78%',
-                }}
-              >
+            {messages.length === 0 ? (
+              <div style={{ color: '#64748b', fontSize: 13 }}>
+                No messages in this conversation yet. Type a reply below and
+                press Send Reply!
+              </div>
+            ) : (
+              messages.map((msg) => (
                 <div
+                  key={msg.id}
                   style={{
-                    fontSize: 11,
-                    fontWeight: 700,
-                    marginBottom: 4,
-                    textTransform: 'uppercase',
-                    opacity: 0.8,
+                    alignSelf:
+                      msg.sender === 'customer' ? 'flex-start' : 'flex-end',
+                    background:
+                      msg.sender === 'agent'
+                        ? '#2563eb'
+                        : msg.sender === 'bot'
+                          ? '#f1f5f9'
+                          : '#ffffff',
+                    color: msg.sender === 'agent' ? '#ffffff' : '#0f172a',
+                    border: '1px solid #cbd5e1',
+                    borderRadius: 10,
+                    padding: '10px 14px',
+                    maxWidth: '78%',
                   }}
                 >
-                  {msg.sender}
-                  {typeof msg.confidence === 'number'
-                    ? ` · confidence ${(msg.confidence * 100).toFixed(0)}%`
-                    : ''}
+                  <div
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 700,
+                      marginBottom: 4,
+                      textTransform: 'uppercase',
+                      opacity: 0.8,
+                    }}
+                  >
+                    {msg.sender}
+                    {typeof msg.confidence === 'number'
+                      ? ` · confidence ${(msg.confidence * 100).toFixed(0)}%`
+                      : ''}
+                  </div>
+                  <div style={{ fontSize: 14, lineHeight: 1.45 }}>
+                    {msg.content}
+                  </div>
                 </div>
-                <div style={{ fontSize: 14, lineHeight: 1.45 }}>
-                  {msg.content}
-                </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
 
           <form
@@ -377,17 +439,18 @@ export default function LiveAgentInboxPage() {
             />
             <button
               type="submit"
+              disabled={sending}
               style={{
-                background: '#2563eb',
+                background: sending ? '#94a3b8' : '#2563eb',
                 color: '#ffffff',
                 border: 'none',
                 borderRadius: 8,
                 padding: '0 18px',
                 fontWeight: 600,
-                cursor: 'pointer',
+                cursor: sending ? 'not-allowed' : 'pointer',
               }}
             >
-              Send Reply
+              {sending ? 'Sending...' : 'Send Reply'}
             </button>
           </form>
           {validationError && (
