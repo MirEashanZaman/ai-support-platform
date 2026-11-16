@@ -59,7 +59,7 @@ export class AuthService {
         name: dto.businessName.trim(),
         tenantKey,
         plan: 'starter',
-        monthlyQuota: 5000,
+        monthlyQuota: 1000,
       });
       const savedTenant = await tenantRepo.save(tenant);
 
