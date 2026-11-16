@@ -26,7 +26,7 @@ export class TenantEntity {
   @Column({ type: 'varchar', length: 32, default: 'starter' })
   plan: string;
 
-  @Column({ name: 'monthly_quota', type: 'integer', default: 5000 })
+  @Column({ name: 'monthly_quota', type: 'integer', default: 1000 })
   monthlyQuota: number;
 
   @Column({
