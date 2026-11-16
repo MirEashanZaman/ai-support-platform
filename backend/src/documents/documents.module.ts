@@ -11,6 +11,7 @@ import {
   PayloadTooLargeException,
   Post,
   UploadedFile,
+  UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
@@ -28,12 +29,14 @@ import {
   AuthenticatedUser,
   CurrentUser,
 } from '../common/decorators/current-user.decorator';
+import { RateLimit } from '../common/decorators/rate-limit.decorator';
 import { Roles } from '../common/decorators/roles.decorator';
 import {
   DocumentStatus,
   DocumentType,
 } from '../common/enums/document-status.enum';
 import { Role } from '../common/enums/role.enum';
+import { RedisRateLimitGuard } from '../common/guards/public-chat-rate-limit.guard';
 import { ChunkEntity, DocumentEntity } from '../database/entities';
 import { RlsTransactionService } from '../database/rls-transaction.service';
 import { RabbitMqService } from '../infra/rabbitmq/rabbitmq.module';
@@ -257,6 +260,13 @@ export class DocumentsController {
 
   @Post()
   @Roles(Role.OWNER)
+  @UseGuards(RedisRateLimitGuard)
+  @RateLimit({
+    limit: 20,
+    windowSeconds: 60,
+    keyPrefix: 'docs:upload',
+    perTenantLimit: 30,
+  })
   @UseInterceptors(
     FileInterceptor('file', {
       limits: { fileSize: MAX_UPLOAD_SIZE_BYTES },
