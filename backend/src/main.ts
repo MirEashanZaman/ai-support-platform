@@ -1,5 +1,6 @@
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import * as cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
@@ -18,7 +19,7 @@ async function bootstrap() {
       contentSecurityPolicy: {
         directives: {
           defaultSrc: ["'self'"],
-          scriptSrc: ["'self'"],
+          scriptSrc: ["'self'", "'unsafe-inline'"],
           styleSrc: ["'self'", "'unsafe-inline'"],
           imgSrc: ["'self'", 'data:'],
         },
@@ -39,6 +40,21 @@ async function bootstrap() {
       transform: true,
     }),
   );
+
+  // Tech Decisions Section 1 & Security Testing Plan Section 2:
+  // Swagger / OpenAPI specification exposed at /api-docs and /api-docs-json (for OWASP ZAP API scanning)
+  const swaggerConfig = new DocumentBuilder()
+    .setTitle('AI Support Platform API')
+    .setDescription(
+      'Multi-tenant AI customer support platform with PostgreSQL RLS, pgvector RAG, RabbitMQ ingestion, and real-time human handoff.',
+    )
+    .setVersion('1.0.0')
+    .addBearerAuth()
+    .build();
+  const openApiDocument = SwaggerModule.createDocument(app, swaggerConfig);
+  SwaggerModule.setup('api-docs', app, openApiDocument, {
+    jsonDocumentUrl: 'api-docs-json',
+  });
 
   const port = Number(process.env.PORT || 4000);
   await app.listen(port);
