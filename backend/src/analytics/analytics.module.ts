@@ -109,7 +109,7 @@ export class AnalyticsService {
             : 100,
         averageResponseTimeMs,
         monthlyQuotaUsed,
-        monthlyQuotaLimit: tenant?.monthlyQuota ?? 5000,
+        monthlyQuotaLimit: tenant?.monthlyQuota ?? 1000,
         topQuestions,
       };
     });
