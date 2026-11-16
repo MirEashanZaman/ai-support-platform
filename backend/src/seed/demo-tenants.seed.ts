@@ -3,14 +3,19 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { DataSource } from 'typeorm';
 import { hashSecret } from '../common/crypto/scrypt.util';
+import { ConversationStatus } from '../common/enums/conversation-status.enum';
 import {
   DocumentStatus,
   DocumentType,
 } from '../common/enums/document-status.enum';
+import { MessageSender } from '../common/enums/message-sender.enum';
 import { Role } from '../common/enums/role.enum';
 import {
+  ConversationEntity,
   DocumentEntity,
+  MessageEntity,
   TenantEntity,
+  UsageEventEntity,
   UserEntity,
 } from '../database/entities';
 import { RlsTransactionService } from '../database/rls-transaction.service';
@@ -157,6 +162,113 @@ export class DemoTenantsBootstrapService implements OnApplicationBootstrap {
             attempt: 1,
           });
         }
+
+        // Seed sample conversations (1 escalated waiting chat + 1 bot-resolved chat) so
+        // the Live Agent Inbox (/inbox) and Analytics (/analytics) are populated immediately!
+        await this.rlsTransaction.runWithTenant(tenant.id, async (manager) => {
+          const convRepo = manager.getRepository(ConversationEntity);
+          const msgRepo = manager.getRepository(MessageEntity);
+          const usageRepo = manager.getRepository(UsageEventEntity);
+
+          const escalatedConv = await convRepo.save(
+            convRepo.create({
+              tenantId: tenant.id,
+              customerSession:
+                dataset.tenantKey === 'oil-supply'
+                  ? 'dealer-dhaka-depot-01'
+                  : 'patient-icu-inquiry-01',
+              status: ConversationStatus.WAITING,
+            }),
+          );
+
+          const customerEscalatedQuestion =
+            dataset.tenantKey === 'oil-supply'
+              ? 'Hello, I need an urgent custom dispatch of 25,000 liters of diesel to Gazipur tonight. Can a human agent confirm tanker availability?'
+              : 'Hello, I need to speak to a human representative regarding an urgent ICU transfer.';
+
+          await msgRepo.save(
+            msgRepo.create({
+              tenantId: tenant.id,
+              conversationId: escalatedConv.id,
+              sender: MessageSender.CUSTOMER,
+              content: customerEscalatedQuestion,
+              citations: [],
+            }),
+          );
+
+          await msgRepo.save(
+            msgRepo.create({
+              tenantId: tenant.id,
+              conversationId: escalatedConv.id,
+              sender: MessageSender.BOT,
+              content:
+                "I'm connecting you with a human support agent right away to assist with your request.",
+              citations: [],
+              confidence: 1.0,
+            }),
+          );
+
+          const resolvedConv = await convRepo.save(
+            convRepo.create({
+              tenantId: tenant.id,
+              customerSession:
+                dataset.tenantKey === 'oil-supply'
+                  ? 'customer-ctg-02'
+                  : 'patient-opd-02',
+              status: ConversationStatus.BOT,
+            }),
+          );
+
+          await msgRepo.save(
+            msgRepo.create({
+              tenantId: tenant.id,
+              conversationId: resolvedConv.id,
+              sender: MessageSender.CUSTOMER,
+              content:
+                dataset.tenantKey === 'oil-supply'
+                  ? 'What is the minimum bulk diesel order quantity?'
+                  : 'What is the general physician consultation fee?',
+              citations: [],
+            }),
+          );
+
+          await msgRepo.save(
+            msgRepo.create({
+              tenantId: tenant.id,
+              conversationId: resolvedConv.id,
+              sender: MessageSender.BOT,
+              content:
+                dataset.tenantKey === 'oil-supply'
+                  ? 'Minimum bulk diesel order is 500 liters. Orders below 500 liters must be picked up directly from a retail dealer station.'
+                  : 'General physician consultation fee is 800 BDT, and specialist cardiology or neurology consultation fee is 1,500 BDT.',
+              citations: [],
+              confidence: 0.94,
+            }),
+          );
+
+          await usageRepo.save(
+            usageRepo.create({
+              tenantId: tenant.id,
+              type: 'chat_message',
+              metadata: {
+                conversationId: escalatedConv.id,
+                responseTimeMs: 320,
+                escalated: true,
+              },
+            }),
+          );
+          await usageRepo.save(
+            usageRepo.create({
+              tenantId: tenant.id,
+              type: 'chat_message',
+              metadata: {
+                conversationId: resolvedConv.id,
+                responseTimeMs: 280,
+                escalated: false,
+              },
+            }),
+          );
+        });
 
         this.logger.log(
           `Auto-seeded demo tenant "${dataset.tenantName}" (tenantKey: ${dataset.tenantKey}, login: owner@${dataset.tenantKey.replace('-', '')}.com / Password123!)`,
