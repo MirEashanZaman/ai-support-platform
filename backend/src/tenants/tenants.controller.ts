@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Patch } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Patch } from '@nestjs/common';
 import { Roles } from '../common/decorators/roles.decorator';
 import { Role } from '../common/enums/role.enum';
 import { UpdateTenantDto } from './dto/update-tenant.dto';
@@ -18,5 +18,10 @@ export class TenantsController {
   async updateMe(@Body() dto: UpdateTenantDto) {
     return this.tenantsService.updateCurrentTenant(dto);
   }
-}
 
+  @Delete('me')
+  @Roles(Role.OWNER)
+  async deleteMe() {
+    return this.tenantsService.deleteCurrentTenant();
+  }
+}
