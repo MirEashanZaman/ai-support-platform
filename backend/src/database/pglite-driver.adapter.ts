@@ -1,54 +1,65 @@
 import { Logger } from '@nestjs/common';
 import { EventEmitter } from 'events';
-import * as net from 'net';
+import { Client } from 'pg';
 
 const logger = new Logger('PGliteFallbackDriver');
 
+export interface PostgresCheckParams {
+  host: string;
+  port: number;
+  user: string;
+  password?: string;
+  database: string;
+}
+
 /**
- * Checks if a TCP PostgreSQL server (e.g., Docker `pgvector/pgvector:pg16`) is listening
- * at `host:port`. Resolves within 600ms.
+ * Verifies whether an external PostgreSQL server is reachable with the configured
+ * credentials AND supports the `vector` (pgvector) extension.
+ * If Docker (`pgvector/pgvector:pg16`) is not running or a local Windows Postgres
+ * instance lacks `pgvector` / uses different credentials, returns `false` so the
+ * backend seamlessly boots with the embedded PGlite (Postgres 16 + pgvector + RLS) engine.
  */
-export function isTcpPostgresReachable(
-  host: string,
-  port: number,
-  timeoutMs = 600,
+export async function canConnectToPostgresWithVector(
+  params: PostgresCheckParams,
 ): Promise<boolean> {
-  return new Promise((resolve) => {
-    const socket = new net.Socket();
-    let settled = false;
-
-    const finish = (ok: boolean) => {
-      if (settled) return;
-      settled = true;
-      socket.destroy();
-      resolve(ok);
-    };
-
-    socket.setTimeout(timeoutMs);
-    socket.once('connect', () => finish(true));
-    socket.once('timeout', () => finish(false));
-    socket.once('error', () => finish(false));
-    socket.connect(port, host);
+  const client = new Client({
+    host: params.host,
+    port: params.port,
+    user: params.user,
+    password: params.password,
+    database: params.database,
+    connectionTimeoutMillis: 1000,
   });
+
+  try {
+    await client.connect();
+    await client.query('CREATE EXTENSION IF NOT EXISTS "vector";');
+    await client.end();
+    return true;
+  } catch {
+    await client.end().catch(() => undefined);
+    return false;
+  }
 }
 
 /**
  * Creates a node-postgres (`pg`) compatible `{ Pool }` driver backed by `@electric-sql/pglite`
  * with the `pgvector` extension enabled. Used automatically in local development when
- * Docker Desktop is not running so `npm run start:dev` works out-of-the-box.
+ * Docker Desktop (`pgvector/pgvector:pg16`) is not running so `run.bat` and `npm run start:dev`
+ * work out-of-the-box with zero manual database setup.
  */
 export async function createEmbeddedPgliteDriver(): Promise<{ Pool: any }> {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const { PGlite } = require('@electric-sql/pglite');
   // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const { vector } = require('@electric-sql/pglite/dist/vector/index.cjs');
+  const { vector } = require('@electric-sql/pglite/vector');
 
   const pgInstance = await PGlite.create({
     extensions: { vector },
   });
 
   logger.log(
-    'Embedded PostgreSQL 16 + pgvector (PGlite) initialized for zero-Docker local development.',
+    'Embedded PostgreSQL 16 + pgvector + RLS (PGlite) initialized for zero-config local execution.',
   );
 
   class PgliteClient extends EventEmitter {
