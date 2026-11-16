@@ -4,53 +4,111 @@ import {
   HttpException,
   HttpStatus,
   Injectable,
+  Optional,
 } from '@nestjs/common';
-import { Request } from 'express';
+import { Reflector } from '@nestjs/core';
+import { Request, Response } from 'express';
 import { RedisService } from '../../infra/redis/redis.module';
+import {
+  RATE_LIMIT_KEY,
+  RateLimitOptions,
+} from '../decorators/rate-limit.decorator';
 
 /**
- * FR-8 & Tech Decisions Section 2:
- * Enforces both per-IP and per-tenant Redis rate limiting on the public chat endpoint
- * (`POST /chat/:tenantKey/messages`).
+ * Redis-Backed Rate Limiting Guard (FR-8 & Tech Decisions Sections 1 & 2):
+ * - Enforces per-IP and optional per-tenant request throttling via Redis.
+ * - Supports route-specific `@RateLimit({ limit, windowSeconds, keyPrefix, perTenantLimit })`
+ *   metadata (for Auth brute-force defense, Document uploads, and Public Chat).
+ * - Attaches standard `X-RateLimit-Limit`, `X-RateLimit-Remaining`, and `Retry-After` headers.
  */
 @Injectable()
 export class PublicChatRateLimitGuard implements CanActivate {
-  private readonly perIpLimitPerMinute = 30;
-  private readonly perTenantLimitPerMinute = 120;
-  private readonly windowSeconds = 60;
+  private readonly defaultIpLimitPerMinute = 30;
+  private readonly defaultTenantLimitPerMinute = 120;
+  private readonly defaultWindowSeconds = 60;
 
-  constructor(private readonly redisService: RedisService) {}
+  constructor(
+    private readonly redisService: RedisService,
+    @Optional() private readonly reflector?: Reflector,
+  ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const req = context.switchToHttp().getRequest<Request>();
-    const tenantKey = String(req.params?.tenantKey || 'unknown');
-    const forwardedFor = req.headers['x-forwarded-for'];
+    const http = context.switchToHttp();
+    const req = http.getRequest<Request>();
+    const res =
+      typeof http.getResponse === 'function'
+        ? http.getResponse<Response | undefined>()
+        : undefined;
+
+    const routeOptions =
+      typeof context.getHandler === 'function' &&
+      typeof context.getClass === 'function' &&
+      this.reflector
+        ? this.reflector.getAllAndOverride<RateLimitOptions | undefined>(
+            RATE_LIMIT_KEY,
+            [context.getHandler(), context.getClass()],
+          )
+        : undefined;
+
+    const ipLimit = routeOptions?.limit ?? this.defaultIpLimitPerMinute;
+    const windowSeconds =
+      routeOptions?.windowSeconds ?? this.defaultWindowSeconds;
+    const keyPrefix = routeOptions?.keyPrefix ?? 'chat';
+    const perTenantLimit =
+      routeOptions?.perTenantLimit ??
+      (keyPrefix === 'chat' ? this.defaultTenantLimitPerMinute : undefined);
+
+    const forwardedFor = req.headers?.['x-forwarded-for'];
     const clientIp = Array.isArray(forwardedFor)
       ? forwardedFor[0]
       : (forwardedFor?.split(',')[0]?.trim() || req.ip || '127.0.0.1');
 
-    const ipKey = `ratelimit:chat:ip:${clientIp}`;
-    const tenantRateKey = `ratelimit:chat:tenant:${tenantKey}`;
+    const ipKey = `ratelimit:${keyPrefix}:ip:${clientIp}`;
+    const ipCount = await this.redisService.increment(ipKey, windowSeconds);
 
-    const [ipCount, tenantCount] = await Promise.all([
-      this.redisService.increment(ipKey, this.windowSeconds),
-      this.redisService.increment(tenantRateKey, this.windowSeconds),
-    ]);
+    if (res && typeof res.setHeader === 'function') {
+      res.setHeader('X-RateLimit-Limit', String(ipLimit));
+      res.setHeader(
+        'X-RateLimit-Remaining',
+        String(Math.max(0, ipLimit - ipCount)),
+      );
+    }
 
-    if (ipCount > this.perIpLimitPerMinute) {
+    if (ipCount > ipLimit) {
+      if (res && typeof res.setHeader === 'function') {
+        res.setHeader('Retry-After', String(windowSeconds));
+      }
       throw new HttpException(
-        'Too many chat requests from this IP address. Please wait a moment and try again.',
+        'Too many requests from this IP address. Please wait a moment and try again.',
         HttpStatus.TOO_MANY_REQUESTS,
       );
     }
 
-    if (tenantCount > this.perTenantLimitPerMinute) {
-      throw new HttpException(
-        'This support bot is experiencing high traffic. Please try again in a moment.',
-        HttpStatus.TOO_MANY_REQUESTS,
+    if (perTenantLimit !== undefined) {
+      const tenantKey = String(
+        req.params?.tenantKey ||
+          (req as Request & { user?: { tenantId?: string } }).user?.tenantId ||
+          'unknown',
       );
+      const tenantRateKey = `ratelimit:${keyPrefix}:tenant:${tenantKey}`;
+      const tenantCount = await this.redisService.increment(
+        tenantRateKey,
+        windowSeconds,
+      );
+
+      if (tenantCount > perTenantLimit) {
+        if (res && typeof res.setHeader === 'function') {
+          res.setHeader('Retry-After', String(windowSeconds));
+        }
+        throw new HttpException(
+          'This workspace has exceeded its per-minute rate limit. Please try again shortly.',
+          HttpStatus.TOO_MANY_REQUESTS,
+        );
+      }
     }
 
     return true;
   }
 }
+
+export { PublicChatRateLimitGuard as RedisRateLimitGuard };
