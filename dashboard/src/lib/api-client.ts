@@ -4,6 +4,10 @@ import { z } from 'zod';
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
 
+const STORAGE_TOKEN_KEY = 'ai_support_access_token';
+const STORAGE_TENANT_ID_KEY = 'ai_support_tenant_id';
+const STORAGE_TENANT_KEY = 'ai_support_tenant_key';
+
 /**
  * Zod schemas for Dashboard API validation (Tech Decisions Section 1).
  */
@@ -22,7 +26,7 @@ export const chatMessageSchema = z.object({
   content: z.string(),
   citations: z.array(citationSchema).default([]),
   confidence: z.number().nullable().optional(),
-  createdAt: z.string(),
+  createdAt: z.union([z.string(), z.date()]).transform((v) => String(v)),
 });
 
 export const handoffQueueItemSchema = z.object({
@@ -33,7 +37,7 @@ export const handoffQueueItemSchema = z.object({
   claimedByUserId: z.string().nullable().optional(),
   messageCount: z.number().default(0),
   lastMessagePreview: z.string().nullable().optional(),
-  updatedAt: z.string(),
+  updatedAt: z.union([z.string(), z.date()]).transform((v) => String(v)),
 });
 
 export const agentReplyFormSchema = z.object({
@@ -52,7 +56,7 @@ export const documentItemSchema = z.object({
   status: z.enum(['Uploaded', 'Processing', 'Ready', 'Failed']),
   sourceUrl: z.string().nullable().optional(),
   errorMessage: z.string().nullable().optional(),
-  createdAt: z.string(),
+  createdAt: z.union([z.string(), z.date()]).transform((v) => String(v)),
 });
 
 export const analyticsSummarySchema = z.object({
@@ -78,9 +82,114 @@ export type HandoffQueueItem = z.infer<typeof handoffQueueItemSchema>;
 export type DocumentItem = z.infer<typeof documentItemSchema>;
 export type AnalyticsSummary = z.infer<typeof analyticsSummarySchema>;
 
+let accessTokenMemory: string | null = null;
+
+export function getAccessToken(): string | null {
+  if (accessTokenMemory) return accessTokenMemory;
+  if (typeof window !== 'undefined') {
+    try {
+      accessTokenMemory = window.localStorage.getItem(STORAGE_TOKEN_KEY);
+      return accessTokenMemory;
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
+
+export function setAccessToken(
+  token: string | null,
+  tenantId?: string,
+  tenantKey?: string,
+): void {
+  accessTokenMemory = token;
+  if (typeof window !== 'undefined') {
+    try {
+      if (token) {
+        window.localStorage.setItem(STORAGE_TOKEN_KEY, token);
+      } else {
+        window.localStorage.removeItem(STORAGE_TOKEN_KEY);
+      }
+      if (tenantId) {
+        window.localStorage.setItem(STORAGE_TENANT_ID_KEY, tenantId);
+      }
+      if (tenantKey) {
+        window.localStorage.setItem(STORAGE_TENANT_KEY, tenantKey);
+      }
+    } catch {
+      // Ignore storage errors in private browsing
+    }
+  }
+}
+
+export function getStoredTenantInfo(): {
+  tenantId: string | null;
+  tenantKey: string;
+} {
+  if (typeof window !== 'undefined') {
+    try {
+      return {
+        tenantId: window.localStorage.getItem(STORAGE_TENANT_ID_KEY),
+        tenantKey:
+          window.localStorage.getItem(STORAGE_TENANT_KEY) || 'oil-supply',
+      };
+    } catch {
+      return { tenantId: null, tenantKey: 'oil-supply' };
+    }
+  }
+  return { tenantId: null, tenantKey: 'oil-supply' };
+}
+
+/**
+ * Ensures the browser session has a valid JWT token. If not signed in yet,
+ * automatically signs into the pre-seeded "Oil Supply" Owner demo account
+ * (`owner@oilsupply.com` / `Password123!`) so Dashboard pages work out-of-the-box.
+ */
+export async function ensureDemoSession(): Promise<{
+  accessToken: string | null;
+  tenantId: string | null;
+  tenantKey: string;
+}> {
+  const existingToken = getAccessToken();
+  const stored = getStoredTenantInfo();
+  if (existingToken && stored.tenantId) {
+    return {
+      accessToken: existingToken,
+      tenantId: stored.tenantId,
+      tenantKey: stored.tenantKey,
+    };
+  }
+
+  try {
+    const res = await axios.post(
+      `${API_BASE_URL}/auth/login`,
+      {
+        email: 'owner@oilsupply.com',
+        password: 'Password123!',
+      },
+      { withCredentials: true },
+    );
+    const token: string | undefined = res.data?.accessToken;
+    const tId: string | undefined = res.data?.tenant?.id;
+    const tKey: string | undefined = res.data?.tenant?.tenantKey;
+    if (token) {
+      setAccessToken(token, tId, tKey);
+      return {
+        accessToken: token,
+        tenantId: tId ?? null,
+        tenantKey: tKey ?? 'oil-supply',
+      };
+    }
+  } catch {
+    // Keep null if backend is still starting up
+  }
+
+  return { accessToken: null, tenantId: null, tenantKey: 'oil-supply' };
+}
+
 /**
  * Axios instance with Bearer access token injection and automatic /auth/refresh
- * interceptor on 401 responses (Tech Decisions Section 1).
+ * + demo session recovery interceptor on 401 responses (Tech Decisions Section 1).
  */
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
@@ -90,15 +199,10 @@ export const apiClient = axios.create({
   },
 });
 
-let accessTokenMemory: string | null = null;
-
-export function setAccessToken(token: string | null): void {
-  accessTokenMemory = token;
-}
-
 apiClient.interceptors.request.use((config) => {
-  if (accessTokenMemory && config.headers) {
-    config.headers.Authorization = `Bearer ${accessTokenMemory}`;
+  const token = getAccessToken();
+  if (token && config.headers) {
+    config.headers.Authorization = `Bearer ${token}`;
   }
   return config;
 });
@@ -111,7 +215,8 @@ apiClient.interceptors.response.use(
       error.response?.status === 401 &&
       originalRequest &&
       !originalRequest._retry &&
-      !String(originalRequest.url).includes('/auth/refresh')
+      !String(originalRequest.url).includes('/auth/refresh') &&
+      !String(originalRequest.url).includes('/auth/login')
     ) {
       originalRequest._retry = true;
       try {
@@ -122,12 +227,22 @@ apiClient.interceptors.response.use(
         );
         const newAccessToken: string | undefined = refreshRes.data?.accessToken;
         if (newAccessToken) {
-          setAccessToken(newAccessToken);
+          setAccessToken(
+            newAccessToken,
+            refreshRes.data?.tenant?.id,
+            refreshRes.data?.tenant?.tenantKey,
+          );
           originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
           return apiClient(originalRequest);
         }
       } catch {
+        // Fallback: auto-authenticate with the seeded Oil Supply demo account
         setAccessToken(null);
+        const demo = await ensureDemoSession();
+        if (demo.accessToken) {
+          originalRequest.headers.Authorization = `Bearer ${demo.accessToken}`;
+          return apiClient(originalRequest);
+        }
       }
     }
     return Promise.reject(error);
@@ -136,6 +251,7 @@ apiClient.interceptors.response.use(
 
 export const handoffApi = {
   async fetchQueue(): Promise<HandoffQueueItem[]> {
+    await ensureDemoSession();
     const res = await apiClient.get('/handoff/queue');
     return z.array(handoffQueueItemSchema).parse(res.data);
   },
@@ -144,6 +260,7 @@ export const handoffApi = {
     conversation: HandoffQueueItem;
     messages: ChatMessageItem[];
   }> {
+    await ensureDemoSession();
     const res = await apiClient.get(`/handoff/${conversationId}/messages`);
     return {
       conversation: res.data.conversation,
@@ -152,11 +269,16 @@ export const handoffApi = {
   },
 
   async claimChat(conversationId: string) {
+    await ensureDemoSession();
     const res = await apiClient.post(`/handoff/${conversationId}/claim`);
     return res.data;
   },
 
-  async sendReply(conversationId: string, content: string): Promise<ChatMessageItem> {
+  async sendReply(
+    conversationId: string,
+    content: string,
+  ): Promise<ChatMessageItem> {
+    await ensureDemoSession();
     const validated = agentReplyFormSchema.parse({ content });
     const res = await apiClient.post(
       `/handoff/${conversationId}/reply`,
@@ -165,7 +287,20 @@ export const handoffApi = {
     return chatMessageSchema.parse(res.data);
   },
 
+  async createEscalatedChatForReply(): Promise<string> {
+    const session = await ensureDemoSession();
+    const res = await apiClient.post(
+      `/chat/${encodeURIComponent(session.tenantKey)}/messages`,
+      {
+        customerSession: `live-inbox-session-${Date.now().toString(36)}`,
+        message: 'Please connect me with a human support agent.',
+      },
+    );
+    return String(res.data.conversationId);
+  },
+
   async closeChat(conversationId: string) {
+    await ensureDemoSession();
     const res = await apiClient.post(`/handoff/${conversationId}/close`);
     return res.data;
   },
@@ -173,6 +308,7 @@ export const handoffApi = {
 
 export const documentsApi = {
   async listDocuments(): Promise<DocumentItem[]> {
+    await ensureDemoSession();
     const res = await apiClient.get('/documents');
     return z.array(documentItemSchema).parse(res.data);
   },
@@ -183,22 +319,26 @@ export const documentsApi = {
     rawContent?: string;
     sourceUrl?: string;
   }): Promise<DocumentItem> {
+    await ensureDemoSession();
     const res = await apiClient.post('/documents', payload);
     return documentItemSchema.parse(res.data);
   },
 
   async deleteDocument(id: string): Promise<void> {
+    await ensureDemoSession();
     await apiClient.delete(`/documents/${id}`);
   },
 };
 
 export const analyticsApi = {
   async fetchSummary(): Promise<AnalyticsSummary> {
+    await ensureDemoSession();
     const res = await apiClient.get('/analytics/summary');
     return analyticsSummarySchema.parse(res.data);
   },
 
   async fetchUnanswered(): Promise<ChatMessageItem[]> {
+    await ensureDemoSession();
     const res = await apiClient.get('/analytics/unanswered');
     return z.array(chatMessageSchema).parse(res.data);
   },
@@ -212,7 +352,11 @@ export const authApi = {
   }) {
     const res = await apiClient.post('/auth/signup', payload);
     if (res.data?.accessToken) {
-      setAccessToken(res.data.accessToken);
+      setAccessToken(
+        res.data.accessToken,
+        res.data?.tenant?.id,
+        res.data?.tenant?.tenantKey,
+      );
     }
     return res.data;
   },
@@ -224,7 +368,11 @@ export const authApi = {
   }) {
     const res = await apiClient.post('/auth/login', payload);
     if (res.data?.accessToken) {
-      setAccessToken(res.data.accessToken);
+      setAccessToken(
+        res.data.accessToken,
+        res.data?.tenant?.id,
+        res.data?.tenant?.tenantKey,
+      );
     }
     return res.data;
   },
