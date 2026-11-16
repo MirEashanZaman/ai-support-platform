@@ -66,7 +66,7 @@ export const analyticsSummarySchema = z.object({
   resolutionRate: z.number(),
   averageResponseTimeMs: z.number().default(0),
   monthlyQuotaUsed: z.number().default(0),
-  monthlyQuotaLimit: z.number().default(5000),
+  monthlyQuotaLimit: z.number().default(1000),
   topQuestions: z
     .array(
       z.object({
@@ -140,10 +140,18 @@ export function getStoredTenantInfo(): {
   return { tenantId: null, tenantKey: 'oil-supply' };
 }
 
+export function isDemoModeEnabled(): boolean {
+  return (
+    process.env.NEXT_PUBLIC_DEMO_MODE === 'true' ||
+    (process.env.NODE_ENV !== 'production' &&
+      process.env.NEXT_PUBLIC_DEMO_MODE !== 'false')
+  );
+}
+
 /**
- * Ensures the browser session has a valid JWT token. If not signed in yet,
- * automatically signs into the pre-seeded "Oil Supply" Owner demo account
- * (`owner@oilsupply.com` / `Password123!`) so Dashboard pages work out-of-the-box.
+ * Ensures the browser session has a valid JWT token.
+ * Auto-login into the pre-seeded "Oil Supply" demo workspace ONLY runs when
+ * `DEMO_MODE` is enabled and is strictly disabled in production deployments.
  */
 export async function ensureDemoSession(): Promise<{
   accessToken: string | null;
@@ -153,6 +161,14 @@ export async function ensureDemoSession(): Promise<{
   const existingToken = getAccessToken();
   const stored = getStoredTenantInfo();
   if (existingToken && stored.tenantId) {
+    return {
+      accessToken: existingToken,
+      tenantId: stored.tenantId,
+      tenantKey: stored.tenantKey,
+    };
+  }
+
+  if (!isDemoModeEnabled()) {
     return {
       accessToken: existingToken,
       tenantId: stored.tenantId,
@@ -321,6 +337,22 @@ export const documentsApi = {
   }): Promise<DocumentItem> {
     await ensureDemoSession();
     const res = await apiClient.post('/documents', payload);
+    return documentItemSchema.parse(res.data);
+  },
+
+  async uploadMultipartFile(
+    file: File,
+    customName?: string,
+  ): Promise<DocumentItem> {
+    await ensureDemoSession();
+    const formData = new FormData();
+    formData.append('file', file);
+    if (customName && customName.trim()) {
+      formData.append('name', customName.trim());
+    }
+    const res = await apiClient.post('/documents', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
     return documentItemSchema.parse(res.data);
   },
 
