@@ -3,7 +3,7 @@ import React from 'react';
 export const metadata = {
   title: 'AI Support Platform — Admin & Agent Dashboard',
   description:
-    'Multi-tenant AI customer support platform with RAG document management and live agent inbox.',
+    'Multi-tenant AI customer support platform with RAG document management, live agent inbox, and analytics.',
 };
 
 export default function RootLayout({
@@ -40,6 +40,12 @@ export default function RootLayout({
               Overview
             </a>
             <a
+              href="/documents"
+              style={{ color: '#e2e8f0', textDecoration: 'none' }}
+            >
+              Documents &amp; Widget
+            </a>
+            <a
               href="/inbox"
               style={{
                 color: '#38bdf8',
@@ -48,6 +54,12 @@ export default function RootLayout({
               }}
             >
               Live Agent Inbox
+            </a>
+            <a
+              href="/analytics"
+              style={{ color: '#e2e8f0', textDecoration: 'none' }}
+            >
+              Analytics &amp; Quotas
             </a>
           </nav>
         </header>
