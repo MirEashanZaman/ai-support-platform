@@ -13,8 +13,8 @@ import {
 } from './entities';
 import { InitialMultiTenantRlsSchema1700000000000 } from './migrations/1700000000000-InitialMultiTenantRlsSchema';
 import {
+  canConnectToPostgresWithVector,
   createEmbeddedPgliteDriver,
-  isTcpPostgresReachable,
 } from './pglite-driver.adapter';
 import { RlsTransactionService } from './rls-transaction.service';
 
@@ -39,14 +39,29 @@ const logger = new Logger('DatabaseModule');
       useFactory: async (config: ConfigService) => {
         const host = config.get<string>('DATABASE_HOST', 'localhost');
         const port = config.get<number>('DATABASE_PORT', 5432);
+        const username = config.get<string>('DATABASE_USER', 'postgres');
+        const password = config.get<string>('DATABASE_PASSWORD', 'postgres');
+        const database = config.get<string>(
+          'DATABASE_NAME',
+          'ai_support_platform',
+        );
         const isTest = config.get<string>('NODE_ENV') === 'test';
 
-        const tcpAvailable = !isTest && (await isTcpPostgresReachable(host, port));
+        const externalReady =
+          !isTest &&
+          (await canConnectToPostgresWithVector({
+            host,
+            port,
+            user: username,
+            password,
+            database,
+          }));
+
         let customDriver: { Pool: any } | undefined;
 
-        if (!tcpAvailable) {
-          logger.warn(
-            `PostgreSQL not detected at ${host}:${port} — activating embedded PGlite (PostgreSQL 16 + pgvector + RLS) fallback.`,
+        if (!externalReady) {
+          logger.log(
+            `External pgvector DB not active at ${host}:${port}/${database} — booting embedded PGlite (PostgreSQL 16 + pgvector + RLS).`,
           );
           customDriver = await createEmbeddedPgliteDriver();
         }
@@ -55,9 +70,9 @@ const logger = new Logger('DatabaseModule');
           type: 'postgres',
           host,
           port,
-          username: config.get<string>('DATABASE_USER', 'postgres'),
-          password: config.get<string>('DATABASE_PASSWORD', 'postgres'),
-          database: config.get<string>('DATABASE_NAME', 'ai_support_platform'),
+          username,
+          password,
+          database,
           driver: customDriver,
           entities: ALL_ENTITIES,
           migrations: [InitialMultiTenantRlsSchema1700000000000],
