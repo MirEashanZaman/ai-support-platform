@@ -61,6 +61,25 @@ export default function RootLayout({
             >
               Analytics &amp; Quotas
             </a>
+            <a
+              href="/login"
+              style={{ color: '#e2e8f0', textDecoration: 'none' }}
+            >
+              Sign In
+            </a>
+            <a
+              href="/signup"
+              style={{
+                backgroundColor: '#2563eb',
+                color: '#ffffff',
+                padding: '6px 12px',
+                borderRadius: 6,
+                fontWeight: 600,
+                textDecoration: 'none',
+              }}
+            >
+              Create Workspace
+            </a>
           </nav>
         </header>
         <main style={{ maxWidth: 1200, margin: '0 auto', padding: 24 }}>
