@@ -6,6 +6,7 @@ import {
   Post,
   Req,
   Res,
+  UseGuards,
 } from '@nestjs/common';
 import { Request, Response } from 'express';
 import {
@@ -13,6 +14,8 @@ import {
   CurrentUser,
 } from '../common/decorators/current-user.decorator';
 import { Public } from '../common/decorators/public.decorator';
+import { RateLimit } from '../common/decorators/rate-limit.decorator';
+import { RedisRateLimitGuard } from '../common/guards/public-chat-rate-limit.guard';
 import { AuthService } from './auth.service';
 import { LoginDto, RefreshTokenDto } from './dto/login.dto';
 import { SignupDto } from './dto/signup.dto';
@@ -24,6 +27,8 @@ export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Public()
+  @UseGuards(RedisRateLimitGuard)
+  @RateLimit({ limit: 10, windowSeconds: 60, keyPrefix: 'auth:signup' })
   @Post('signup')
   async signup(
     @Body() dto: SignupDto,
@@ -39,6 +44,8 @@ export class AuthController {
   }
 
   @Public()
+  @UseGuards(RedisRateLimitGuard)
+  @RateLimit({ limit: 10, windowSeconds: 60, keyPrefix: 'auth:login' })
   @Post('login')
   @HttpCode(HttpStatus.OK)
   async login(
@@ -55,6 +62,8 @@ export class AuthController {
   }
 
   @Public()
+  @UseGuards(RedisRateLimitGuard)
+  @RateLimit({ limit: 20, windowSeconds: 60, keyPrefix: 'auth:refresh' })
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
   async refresh(
