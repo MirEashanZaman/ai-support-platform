@@ -82,6 +82,14 @@
       '  font-size: 11px; background: #eff6ff; color: #1d4ed8;',
       '  border: 1px solid #bfdbfe; border-radius: 6px; padding: 2px 6px;',
       '}',
+      '.aisp-confidence-pill {',
+      '  font-size: 11px; background: #f0fdf4; color: #15803d;',
+      '  border: 1px solid #bbf7d0; border-radius: 6px; padding: 2px 6px;',
+      '}',
+      '.aisp-escalated-pill {',
+      '  font-size: 11px; background: #fef3c7; color: #b45309;',
+      '  border: 1px solid #fde68a; border-radius: 6px; padding: 2px 6px;',
+      '}',
       '.aisp-footer {',
       '  padding: 10px 12px; background: #ffffff; border-top: 1px solid #e2e8f0;',
       '  display: flex; gap: 8px;',
@@ -186,7 +194,7 @@
     shadow.appendChild(panel);
     shadow.appendChild(launcherBtn);
 
-    function appendMessage(sender, text, citations) {
+    function appendMessage(sender, text, citations, confidence, escalated) {
       var msgEl = document.createElement('div');
       msgEl.className =
         'aisp-msg ' +
@@ -196,18 +204,38 @@
       contentEl.textContent = text;
       msgEl.appendChild(contentEl);
 
-      if (Array.isArray(citations) && citations.length > 0) {
+      var hasCitations = Array.isArray(citations) && citations.length > 0;
+      var hasConfidence = typeof confidence === 'number';
+
+      if (sender !== 'customer' && (hasCitations || hasConfidence || escalated)) {
         var citeWrap = document.createElement('div');
         citeWrap.className = 'aisp-citations';
-        for (var i = 0; i < citations.length; i++) {
-          var pill = document.createElement('span');
-          pill.className = 'aisp-citation-pill';
-          pill.textContent = 'Source: ' + (citations[i].documentName || 'Doc');
-          if (citations[i].snippet) {
-            pill.title = citations[i].snippet;
+
+        if (hasCitations) {
+          for (var i = 0; i < citations.length; i++) {
+            var pill = document.createElement('span');
+            pill.className = 'aisp-citation-pill';
+            pill.textContent = 'Source: ' + (citations[i].documentName || 'Doc');
+            if (citations[i].snippet) {
+              pill.title = citations[i].snippet;
+            }
+            citeWrap.appendChild(pill);
           }
-          citeWrap.appendChild(pill);
         }
+
+        if (escalated) {
+          var escPill = document.createElement('span');
+          escPill.className = 'aisp-escalated-pill';
+          escPill.textContent = 'Escalated to human agent';
+          citeWrap.appendChild(escPill);
+        } else if (hasConfidence && confidence > 0) {
+          var confPill = document.createElement('span');
+          confPill.className = 'aisp-confidence-pill';
+          confPill.textContent =
+            'Confidence: ' + Math.round(confidence * 100) + '%';
+          citeWrap.appendChild(confPill);
+        }
+
         msgEl.appendChild(citeWrap);
       }
 
@@ -253,7 +281,9 @@
         }
 
         var data = await response.json();
-        if (data.status === 'waiting' || data.status === 'human') {
+        var isEscalated =
+          data.status === 'waiting' || data.status === 'human';
+        if (isEscalated) {
           statusEl.textContent = 'Escalated to live support agent';
         }
         if (data.reply && data.reply.content) {
@@ -261,6 +291,8 @@
             'bot',
             data.reply.content,
             data.reply.citations || [],
+            data.reply.confidence,
+            isEscalated,
           );
         }
       } catch (_err) {
