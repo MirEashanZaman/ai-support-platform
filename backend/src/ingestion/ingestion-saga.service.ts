@@ -1,12 +1,25 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { DocumentStatus, DocumentType } from '../common/enums/document-status.enum';
+import {
+  DocumentStatus,
+  DocumentType,
+} from '../common/enums/document-status.enum';
+import {
+  SagaOrchestrator,
+  SagaStep,
+} from '../common/saga/saga-orchestrator';
 import { maskPii } from '../common/security/pii-masker.util';
 import { ChunkEntity, DocumentEntity } from '../database/entities';
 import { RlsTransactionService } from '../database/rls-transaction.service';
 import { EmbeddingsService } from '../infra/embeddings/embeddings.module';
 import { RabbitMqService } from '../infra/rabbitmq/rabbitmq.module';
-import { DocumentParserFactory } from './parsers/document-parser.factory';
-import { ChunkingStrategyResolver } from './strategies/chunking.strategy';
+import {
+  DocumentParserFactory,
+  ParsedDocumentOutput,
+} from './parsers/document-parser.factory';
+import {
+  ChunkingStrategyResolver,
+  TextChunkResult,
+} from './strategies/chunking.strategy';
 
 export interface ExecuteIngestionJobInput {
   tenantId: string;
@@ -23,21 +36,29 @@ export interface ExecuteIngestionJobResult {
   chunkCount: number;
   attempt: number;
   routedToDlq: boolean;
+  rolledBack?: boolean;
+  completedSteps?: string[];
+  compensatedSteps?: string[];
+}
+
+interface IngestionSagaContext {
+  input: ExecuteIngestionJobInput;
+  attempt: number;
+  isFinalAttempt: boolean;
+  parsed?: ParsedDocumentOutput;
+  chunks: TextChunkResult[];
+  embeddings: number[][];
 }
 
 /**
- * Saga Pattern (Tech Decisions Section 3 & PRD FR-3):
- * Orchestrates multi-step document ingestion:
- *   1. Transition document status -> `Processing`
- *   2. Parse raw file/URL via `DocumentParserFactory`
- *   3. Split text into chunks via `ChunkingStrategyResolver`
- *   4. Generate embeddings via `EmbeddingsService` and write to `pgvector` (`chunks` table)
- *   5. Transition document status -> `Ready`
+ * Saga Pattern with LIFO Compensating Rollback (Tech Decisions Section 3 & PRD FR-3):
+ * Uses `SagaOrchestrator` across 4 transactional stages:
+ *   1. `MarkDocumentProcessing` (Compensate: revert status to `Uploaded` or `Failed` with error)
+ *   2. `ParseDocumentContent` (Compensate: clear parsed buffer/text state)
+ *   3. `ChunkAndEmbedVectors` (Compensate: release generated chunks & vectors)
+ *   4. `PersistPgVectorChunksAndMarkReady` (Compensate: delete partial chunks in pgvector)
  *
- * Compensating Rollback & Retry/DLQ:
- *   - If any step fails, deletes any partially written `chunks` for `documentId`.
- *   - Retries up to 3 times (`attempt` 1..3) via RabbitMQ.
- *   - On the 3rd failure, routes the job to `document.ingestion.dlq` and marks the document `Failed`.
+ * Failed jobs retry up to 3 times via RabbitMQ before routing to the Dead-Letter Queue (`document.ingestion.dlq`).
  */
 @Injectable()
 export class IngestionSagaService {
@@ -56,145 +77,180 @@ export class IngestionSagaService {
     input: ExecuteIngestionJobInput,
   ): Promise<ExecuteIngestionJobResult> {
     const attempt = input.attempt ?? 1;
+    const isFinalAttempt = attempt >= this.maxRetries;
 
-    try {
-      // Step 1: Mark status = Processing inside tenant RLS context
-      await this.rlsTransaction.runWithTenant(
-        input.tenantId,
-        async (manager) => {
-          await manager
-            .getRepository(DocumentEntity)
-            .update(
-              { id: input.documentId },
-              { status: DocumentStatus.PROCESSING, errorMessage: null },
-            );
-        },
-      );
+    const context: IngestionSagaContext = {
+      input,
+      attempt,
+      isFinalAttempt,
+      chunks: [],
+      embeddings: [],
+    };
 
-      // Step 2: Parse document via Factory Pattern
-      const parser = this.parserFactory.getParser(input.type);
-      const parsed = await parser.parse({
-        type: input.type,
-        buffer: input.buffer,
-        rawText: input.rawText,
-        sourceUrl: input.sourceUrl,
-      });
-
-      // Step 3: Split into chunks via Strategy Pattern
-      const chunkingStrategy = this.chunkingResolver.resolve(input.type);
-      const chunks = chunkingStrategy.split(parsed.text, parsed.metadata);
-      if (chunks.length === 0) {
-        throw new Error('Document produced zero text chunks after parsing');
-      }
-
-      // Step 4: Generate 1536-dim embeddings
-      const embeddings = await this.embeddingsService.embedBatch(
-        chunks.map((c) => c.content),
-      );
-
-      // Step 5: Persist chunks in pgvector and mark document Ready inside RLS transaction
-      await this.rlsTransaction.runWithTenant(
-        input.tenantId,
-        async (manager) => {
-          const chunkRepo = manager.getRepository(ChunkEntity);
-          const docRepo = manager.getRepository(DocumentEntity);
-
-          await chunkRepo.delete({ documentId: input.documentId });
-
-          for (let i = 0; i < chunks.length; i++) {
-            const vectorLiteral = this.embeddingsService.toPgVectorLiteral(
-              embeddings[i],
-            );
-            await manager.query(
-              `INSERT INTO "chunks" ("tenant_id", "document_id", "chunk_index", "content", "metadata", "embedding")
-               VALUES ($1, $2, $3, $4, $5::jsonb, $6::vector)`,
-              [
-                input.tenantId,
-                input.documentId,
-                chunks[i].chunkIndex,
-                chunks[i].content,
-                JSON.stringify(chunks[i].metadata),
-                vectorLiteral,
-              ],
-            );
-          }
-
-          await docRepo.update(
-            { id: input.documentId },
-            { status: DocumentStatus.READY, errorMessage: null },
+    const steps: SagaStep<IngestionSagaContext>[] = [
+      {
+        name: 'MarkDocumentProcessing',
+        execute: async (ctx) => {
+          await this.rlsTransaction.runWithTenant(
+            ctx.input.tenantId,
+            async (manager) => {
+              await manager.getRepository(DocumentEntity).update(
+                { id: ctx.input.documentId },
+                { status: DocumentStatus.PROCESSING, errorMessage: null },
+              );
+            },
           );
         },
-      );
+        compensate: async (ctx, error) => {
+          const safeErrorMsg = maskPii(error.message || 'Ingestion error');
+          await this.rlsTransaction.runWithTenant(
+            ctx.input.tenantId,
+            async (manager) => {
+              await manager
+                .getRepository(ChunkEntity)
+                .delete({ documentId: ctx.input.documentId });
+              await manager.getRepository(DocumentEntity).update(
+                { id: ctx.input.documentId },
+                {
+                  status: ctx.isFinalAttempt
+                    ? DocumentStatus.FAILED
+                    : DocumentStatus.UPLOADED,
+                  errorMessage: safeErrorMsg,
+                },
+              );
+            },
+          );
+        },
+      },
+      {
+        name: 'ParseDocumentContent',
+        execute: async (ctx) => {
+          const parser = this.parserFactory.getParser(ctx.input.type);
+          ctx.parsed = await parser.parse({
+            type: ctx.input.type,
+            buffer: ctx.input.buffer,
+            rawText: ctx.input.rawText,
+            sourceUrl: ctx.input.sourceUrl,
+          });
+        },
+        compensate: async (ctx) => {
+          ctx.parsed = undefined;
+        },
+      },
+      {
+        name: 'ChunkAndEmbedVectors',
+        execute: async (ctx) => {
+          if (!ctx.parsed) {
+            throw new Error('Parsed document output is missing');
+          }
+          const chunkingStrategy = this.chunkingResolver.resolve(
+            ctx.input.type,
+          );
+          ctx.chunks = chunkingStrategy.split(
+            ctx.parsed.text,
+            ctx.parsed.metadata,
+          );
+          if (ctx.chunks.length === 0) {
+            throw new Error('Document produced zero text chunks after parsing');
+          }
+          ctx.embeddings = await this.embeddingsService.embedBatch(
+            ctx.chunks.map((c) => c.content),
+          );
+        },
+        compensate: async (ctx) => {
+          ctx.chunks = [];
+          ctx.embeddings = [];
+        },
+      },
+      {
+        name: 'PersistPgVectorChunksAndMarkReady',
+        execute: async (ctx) => {
+          await this.rlsTransaction.runWithTenant(
+            ctx.input.tenantId,
+            async (manager) => {
+              const chunkRepo = manager.getRepository(ChunkEntity);
+              const docRepo = manager.getRepository(DocumentEntity);
 
+              await chunkRepo.delete({ documentId: ctx.input.documentId });
+
+              for (let i = 0; i < ctx.chunks.length; i++) {
+                const vectorLiteral = this.embeddingsService.toPgVectorLiteral(
+                  ctx.embeddings[i],
+                );
+                await manager.query(
+                  `INSERT INTO "chunks" ("tenant_id", "document_id", "chunk_index", "content", "metadata", "embedding")
+                   VALUES ($1, $2, $3, $4, $5::jsonb, $6::vector)`,
+                  [
+                    ctx.input.tenantId,
+                    ctx.input.documentId,
+                    ctx.chunks[i].chunkIndex,
+                    ctx.chunks[i].content,
+                    JSON.stringify(ctx.chunks[i].metadata),
+                    vectorLiteral,
+                  ],
+                );
+              }
+
+              await docRepo.update(
+                { id: ctx.input.documentId },
+                { status: DocumentStatus.READY, errorMessage: null },
+              );
+            },
+          );
+        },
+        compensate: async (ctx) => {
+          await this.rlsTransaction.runWithTenant(
+            ctx.input.tenantId,
+            async (manager) => {
+              await manager
+                .getRepository(ChunkEntity)
+                .delete({ documentId: ctx.input.documentId });
+            },
+          );
+        },
+      },
+    ];
+
+    const orchestrator = new SagaOrchestrator<IngestionSagaContext>(
+      'DocumentIngestionSaga',
+      steps,
+    );
+    const sagaResult = await orchestrator.run(context);
+
+    if (sagaResult.succeeded) {
       return {
         status: DocumentStatus.READY,
-        chunkCount: chunks.length,
+        chunkCount: context.chunks.length,
         attempt,
         routedToDlq: false,
-      };
-    } catch (err) {
-      const safeErrorMsg = maskPii((err as Error).message || 'Ingestion error');
-      this.logger.warn(
-        `Ingestion Saga failed for document ${input.documentId} (attempt ${attempt}/${this.maxRetries}): ${safeErrorMsg}`,
-      );
-
-      // Compensating Rollback: remove any partial chunks and update status
-      const isFinalFailure = attempt >= this.maxRetries;
-      await this.compensateFailure(
-        input.tenantId,
-        input.documentId,
-        safeErrorMsg,
-        isFinalFailure,
-      );
-
-      if (!isFinalFailure) {
-        // Queue next retry attempt (1 -> 2 -> 3)
-        await this.rabbitMqService.publishIngestionJob({
-          tenantId: input.tenantId,
-          documentId: input.documentId,
-          attempt: attempt + 1,
-        });
-        return {
-          status: DocumentStatus.PROCESSING,
-          chunkCount: 0,
-          attempt,
-          routedToDlq: false,
-        };
-      }
-
-      // Exceeded 3 retries: route to Dead-Letter Queue (FR-3)
-      await this.rabbitMqService.publishIngestionJob({
-        tenantId: input.tenantId,
-        documentId: input.documentId,
-        attempt: attempt + 1,
-      });
-
-      return {
-        status: DocumentStatus.FAILED,
-        chunkCount: 0,
-        attempt,
-        routedToDlq: true,
+        rolledBack: false,
+        completedSteps: sagaResult.completedSteps,
+        compensatedSteps: [],
       };
     }
-  }
 
-  private async compensateFailure(
-    tenantId: string,
-    documentId: string,
-    errorMessage: string,
-    markFailed: boolean,
-  ): Promise<void> {
-    await this.rlsTransaction.runWithTenant(tenantId, async (manager) => {
-      await manager.getRepository(ChunkEntity).delete({ documentId });
-      await manager.getRepository(DocumentEntity).update(
-        { id: documentId },
-        {
-          status: markFailed
-            ? DocumentStatus.FAILED
-            : DocumentStatus.UPLOADED,
-          errorMessage,
-        },
-      );
+    const safeErrorMsg = maskPii(
+      sagaResult.error?.message || 'Ingestion error',
+    );
+    this.logger.warn(
+      `Ingestion Saga rolled back for document ${input.documentId} (attempt ${attempt}/${this.maxRetries}): ${safeErrorMsg}`,
+    );
+
+    // Queue next retry attempt (1 -> 2 -> 3) or route to Dead-Letter Queue on attempt > 3 (FR-3)
+    await this.rabbitMqService.publishIngestionJob({
+      tenantId: input.tenantId,
+      documentId: input.documentId,
+      attempt: attempt + 1,
     });
+
+    return {
+      status: isFinalAttempt ? DocumentStatus.FAILED : DocumentStatus.PROCESSING,
+      chunkCount: 0,
+      attempt,
+      routedToDlq: isFinalAttempt,
+      rolledBack: sagaResult.rolledBack,
+      completedSteps: sagaResult.completedSteps,
+      compensatedSteps: sagaResult.compensatedSteps,
+    };
   }
 }
