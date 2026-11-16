@@ -2,6 +2,8 @@
 
 Multi-tenant B2B AI customer support platform where businesses sign up, upload documents (`PDF`, `Markdown`, `TXT`, `URL`), and embed a style-isolated **Shadow DOM** chat widget on their website. Powered by **NestJS 11**, **PostgreSQL 16 (`pgvector` + Row-Level Security)**, **Redis 7**, **RabbitMQ (with 3x retry + Dead-Letter Queue)**, **Next.js 15**, **Socket.io**, **Zod**, and the **Anthropic Claude API**.
 
+![How AI Support Platform Works](./docs/how-it-works.png)
+
 ---
 
 ## Published Evaluation Report (104-Question Benchmark)
