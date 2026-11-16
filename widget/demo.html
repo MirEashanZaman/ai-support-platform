@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Oil Supply & Delivery Portal — Widget Demo (FR-6)</title>
+  <style>
+    /* Host site styles intentionally aggressive to prove Shadow DOM isolation */
+    body {
+      margin: 0;
+      font-family: Georgia, serif;
+      background: #0f172a;
+      color: #f8fafc;
+      padding: 40px;
+    }
+    button {
+      background: #dc2626 !important;
+      color: yellow !important;
+      font-family: Courier, monospace !important;
+    }
+    .hero {
+      max-width: 720px;
+      margin: 0 auto;
+      background: #1e293b;
+      padding: 32px;
+      border-radius: 16px;
+      border: 1px solid #334155;
+    }
+  </style>
+</head>
+<body>
+  <div class="hero">
+    <h1>Oil Supply &amp; Delivery Management System</h1>
+    <p>
+      This host page defines aggressive global CSS rules (<code>button { background: red !important }</code>).
+      Because the AI Support Platform widget mounts inside a <strong>Shadow DOM</strong> root, its layout and colors remain 100% isolated.
+    </p>
+  </div>
+
+  <!-- Single script tag embed (FR-6) -->
+  <script
+    src="./src/widget.js"
+    data-tenant-key="oil-supply-demo"
+    data-api-url="http://localhost:4000"
+  ></script>
+</body>
+</html>
