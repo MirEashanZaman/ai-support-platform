@@ -1,4 +1,4 @@
-name: CI — Lint, Build & Tenant Isolation Tests
+name: CI — Lint, Build, Postgres RLS & 104-Question AI Eval Suite
 
 on:
   push:
@@ -7,8 +7,8 @@ on:
     branches: [main, master, develop]
 
 jobs:
-  backend-verify:
-    name: Backend (Lint, Build & Postgres RLS Tests)
+  backend-and-evals-verify:
+    name: Backend (Lint, Build, Postgres RLS & AI Evals)
     runs-on: ubuntu-latest
 
     steps:
@@ -22,7 +22,7 @@ jobs:
           cache: "npm"
           cache-dependency-path: backend/package-lock.json
 
-      - name: Install dependencies
+      - name: Install backend dependencies
         working-directory: ./backend
         run: npm ci
 
@@ -34,7 +34,12 @@ jobs:
         working-directory: ./backend
         run: npm run build
 
+      - name: Verify Embeddable Widget Bundle
+        run: node --check widget/src/widget.js
+
       - name: Run Unit & Postgres RLS Tenant Isolation Tests
         working-directory: ./backend
         run: npm test
 
+      - name: Run 104-Question AI RAG Evaluation Benchmark Gate
+        run: node evals/run-evals.js
