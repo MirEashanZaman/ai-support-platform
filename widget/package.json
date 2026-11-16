@@ -1,0 +1,11 @@
+{
+  "name": "@ai-support-platform/widget",
+  "version": "1.0.0",
+  "description": "Zero-dependency Shadow DOM embeddable AI support chat widget (FR-6)",
+  "main": "src/widget.js",
+  "private": true,
+  "license": "MIT",
+  "scripts": {
+    "check": "node --check src/widget.js"
+  }
+}
