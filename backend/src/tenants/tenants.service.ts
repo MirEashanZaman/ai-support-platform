@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { TenantContextService } from '../common/context/tenant-context.service';
+import { sanitizeInput } from '../common/security/xss-sanitizer.util';
 import { TenantEntity } from '../database/entities';
 import { UpdateTenantDto } from './dto/update-tenant.dto';
 
@@ -33,7 +34,7 @@ export class TenantsService {
     }
 
     if (dto.name !== undefined) {
-      tenant.name = dto.name.trim();
+      tenant.name = sanitizeInput(dto.name);
     }
     if (dto.allowedOrigins !== undefined) {
       tenant.allowedOrigins = dto.allowedOrigins;
@@ -42,10 +43,29 @@ export class TenantsService {
       tenant.widgetConfig = {
         ...tenant.widgetConfig,
         ...dto.widgetConfig,
+        ...(dto.widgetConfig.botName
+          ? { botName: sanitizeInput(dto.widgetConfig.botName) }
+          : {}),
+        ...(dto.widgetConfig.welcomeMessage
+          ? { welcomeMessage: sanitizeInput(dto.widgetConfig.welcomeMessage) }
+          : {}),
       };
     }
 
     return this.tenantRepo.save(tenant);
   }
-}
 
+  /**
+   * PRD Section 8 Privacy:
+   * "no customer data is shared between tenants. Tenant deletion removes all their data."
+   */
+  async deleteCurrentTenant(): Promise<{ deleted: boolean; tenantId: string }> {
+    const tenantId = this.tenantContext.requireTenantId();
+    const tenant = await this.tenantRepo.findOne({ where: { id: tenantId } });
+    if (!tenant) {
+      throw new NotFoundException('Tenant not found');
+    }
+    await this.tenantRepo.remove(tenant);
+    return { deleted: true, tenantId };
+  }
+}
