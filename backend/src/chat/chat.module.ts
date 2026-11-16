@@ -27,6 +27,7 @@ import {
 } from '../database/entities';
 import { RlsTransactionService } from '../database/rls-transaction.service';
 import { HandoffGateway, HandoffModule } from '../handoff/handoff.module';
+import { ConversationStateMachine } from '../handoff/state-machine/conversation-state-machine';
 import { ClaudeLlmAdapter } from './adapters/claude-llm.adapter';
 import { PgVectorStoreAdapter } from './adapters/vector-store.adapter';
 import { CircuitBreaker } from './resilience/circuit-breaker';
@@ -43,8 +44,11 @@ export class SendChatMessageDto {
   message: string;
 }
 
+const UNHELPFUL_FEEDBACK_REGEX =
+  /\b(not\s+helpful|didn'?t\s+help|does\s*n'?t\s+help|wrong\s+answer|still\s+not\s+working|useless|that'?s\s+wrong|repeating\s+yourself)\b/i;
+
 /**
- * Facade Pattern (Tech Decisions Section 3 & PRD FR-4):
+ * Facade Pattern (Tech Decisions Section 3 & PRD FR-4 / FR-5):
  * One simple ChatService hiding origin validation, RLS vector retrieval,
  * prompt-injection checks, Claude LLM prompting, Circuit Breaker resilience,
  * confidence scoring, and automatic human handoff escalation.
@@ -92,6 +96,52 @@ export class ChatService {
     };
   }
 
+  /**
+   * Public endpoint for the customer widget to fetch conversation status and real-time
+   * agent replies for the current customerSession.
+   */
+  async getCustomerSessionMessages(
+    tenantKey: string,
+    customerSession: string,
+    requestOrigin?: string,
+  ) {
+    const tenant = await this.tenantRepo.findOne({ where: { tenantKey } });
+    if (!tenant) {
+      throw new NotFoundException('Tenant workspace not found');
+    }
+
+    this.verifyAllowedOrigin(tenant.allowedOrigins, requestOrigin);
+
+    return this.rlsTransaction.runWithTenant(tenant.id, async (manager) => {
+      const convRepo = manager.getRepository(ConversationEntity);
+      const msgRepo = manager.getRepository(MessageEntity);
+
+      const conversation = await convRepo.findOne({
+        where: { customerSession },
+        order: { createdAt: 'DESC' },
+      });
+
+      if (!conversation) {
+        return {
+          conversationId: null,
+          status: ConversationStatus.BOT,
+          messages: [],
+        };
+      }
+
+      const messages = await msgRepo.find({
+        where: { conversationId: conversation.id },
+        order: { createdAt: 'ASC' },
+      });
+
+      return {
+        conversationId: conversation.id,
+        status: conversation.status,
+        messages,
+      };
+    });
+  }
+
   async handleCustomerMessage(
     tenantKey: string,
     dto: SendChatMessageDto,
@@ -129,7 +179,7 @@ export class ChatService {
         );
       }
 
-      await msgRepo.save(
+      const customerMsg = await msgRepo.save(
         msgRepo.create({
           tenantId: tenant.id,
           conversationId: conversation.id,
@@ -148,10 +198,13 @@ export class ChatService {
       );
 
       // FR-5: The bot stays silent while an agent owns or is queued for the chat
-      if (
-        conversation.status === ConversationStatus.HUMAN ||
-        conversation.status === ConversationStatus.WAITING
-      ) {
+      if (ConversationStateMachine.isBotMuted(conversation.status)) {
+        // Still notify the live agent inbox of the customer's new message in real time!
+        this.handoffGateway.emitTenantEvent(
+          tenant.id,
+          'handoff:customer_message',
+          customerMsg,
+        );
         return {
           conversationId: conversation.id,
           status: conversation.status,
@@ -161,7 +214,7 @@ export class ChatService {
         };
       }
 
-      // Trigger 1: Explicit customer request for a human agent (FR-5)
+      // FR-5 Trigger 1: Explicit customer request for a human agent
       const explicitHumanRequest =
         /\b(talk\s+to\s+(a\s+)?human|human\s+agent|live\s+agent|real\s+person|speak\s+to\s+someone|representative)\b/i.test(
           sanitizedMessage,
@@ -176,6 +229,19 @@ export class ChatService {
           "I'm connecting you with a human support agent right away.",
           1.0,
           'customer_requested_human',
+        );
+      }
+
+      // FR-5 Trigger 2: Repeated unhelpful answers
+      if (UNHELPFUL_FEEDBACK_REGEX.test(sanitizedMessage)) {
+        return this.escalateToHuman(
+          tenant.id,
+          conversation,
+          convRepo,
+          msgRepo,
+          "I'm sorry my previous answer wasn't helpful. I'm transferring your chat to a human support agent who can assist you directly.",
+          0,
+          'repeated_unhelpful_answers',
         );
       }
 
@@ -208,6 +274,7 @@ export class ChatService {
           }),
         );
 
+        // FR-5 Trigger 3: Low confidence
         if (llmResult.shouldEscalate) {
           return this.escalateToHuman(
             tenant.id,
@@ -297,7 +364,10 @@ export class ChatService {
     confidence: number,
     reason: string,
   ) {
-    conversation.status = ConversationStatus.WAITING;
+    conversation.status = ConversationStateMachine.assertTransition(
+      conversation.status,
+      ConversationStatus.WAITING,
+    );
     const savedConv = await convRepo.save(conversation);
 
     const escalationReply = await msgRepo.save(
@@ -341,6 +411,20 @@ export class ChatController {
     @Headers('origin') origin?: string,
   ) {
     return this.chatService.getPublicWidgetConfig(tenantKey, origin);
+  }
+
+  @Public()
+  @Get(':tenantKey/conversations/:customerSession/messages')
+  async getSessionMessages(
+    @Param('tenantKey') tenantKey: string,
+    @Param('customerSession') customerSession: string,
+    @Headers('origin') origin?: string,
+  ) {
+    return this.chatService.getCustomerSessionMessages(
+      tenantKey,
+      customerSession,
+      origin,
+    );
   }
 
   @Public()
