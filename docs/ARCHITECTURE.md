@@ -1,5 +1,16 @@
 # AI Support Platform — System Architecture
 
+## 0. End-to-End Flow at a Glance
+
+![How AI Support Platform Works](./how-it-works.png)
+
+- **Setup (Once per document):** `Business owner (Uploads documents)` $\rightarrow$ `Queue and worker (Chunk and embed)` $\rightarrow$ `Vector database (pgvector with RLS)`
+- **Chat (Every question):** `Customer (Asks in widget)` $\rightarrow$ `Search and check (Claude + top chunks from pgvector with RLS)` $\rightarrow$ branches to:
+  1. **`Answer with sources (If confident)`**
+  2. **`Human agent (If unsure or asked)`**
+
+---
+
 ## 1. High-Level System Architecture
 
 ```mermaid
