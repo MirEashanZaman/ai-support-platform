@@ -44,8 +44,39 @@ export const agentReplyFormSchema = z.object({
     .max(2000, 'Reply must be under 2000 characters'),
 });
 
+export const documentItemSchema = z.object({
+  id: z.string(),
+  tenantId: z.string(),
+  name: z.string(),
+  type: z.enum(['pdf', 'txt', 'md', 'url']),
+  status: z.enum(['Uploaded', 'Processing', 'Ready', 'Failed']),
+  sourceUrl: z.string().nullable().optional(),
+  errorMessage: z.string().nullable().optional(),
+  createdAt: z.string(),
+});
+
+export const analyticsSummarySchema = z.object({
+  totalChats: z.number(),
+  botResolvedChats: z.number(),
+  escalatedChats: z.number(),
+  resolutionRate: z.number(),
+  averageResponseTimeMs: z.number().default(0),
+  monthlyQuotaUsed: z.number().default(0),
+  monthlyQuotaLimit: z.number().default(5000),
+  topQuestions: z
+    .array(
+      z.object({
+        question: z.string(),
+        count: z.number(),
+      }),
+    )
+    .default([]),
+});
+
 export type ChatMessageItem = z.infer<typeof chatMessageSchema>;
 export type HandoffQueueItem = z.infer<typeof handoffQueueItemSchema>;
+export type DocumentItem = z.infer<typeof documentItemSchema>;
+export type AnalyticsSummary = z.infer<typeof analyticsSummarySchema>;
 
 /**
  * Axios instance with Bearer access token injection and automatic /auth/refresh
@@ -137,5 +168,38 @@ export const handoffApi = {
   async closeChat(conversationId: string) {
     const res = await apiClient.post(`/handoff/${conversationId}/close`);
     return res.data;
+  },
+};
+
+export const documentsApi = {
+  async listDocuments(): Promise<DocumentItem[]> {
+    const res = await apiClient.get('/documents');
+    return z.array(documentItemSchema).parse(res.data);
+  },
+
+  async createTextOrUrlDocument(payload: {
+    name: string;
+    type: 'pdf' | 'txt' | 'md' | 'url';
+    rawContent?: string;
+    sourceUrl?: string;
+  }): Promise<DocumentItem> {
+    const res = await apiClient.post('/documents', payload);
+    return documentItemSchema.parse(res.data);
+  },
+
+  async deleteDocument(id: string): Promise<void> {
+    await apiClient.delete(`/documents/${id}`);
+  },
+};
+
+export const analyticsApi = {
+  async fetchSummary(): Promise<AnalyticsSummary> {
+    const res = await apiClient.get('/analytics/summary');
+    return analyticsSummarySchema.parse(res.data);
+  },
+
+  async fetchUnanswered(): Promise<ChatMessageItem[]> {
+    const res = await apiClient.get('/analytics/unanswered');
+    return z.array(chatMessageSchema).parse(res.data);
   },
 };
