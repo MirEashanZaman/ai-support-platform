@@ -223,7 +223,7 @@ describe('Security Testing Plan — Broken Access Control, Cross-Tenant IDOR & T
                   name: 'Oil Supply',
                   tenantKey: 'oil-supply',
                   plan: 'starter',
-                  monthlyQuota: 5000,
+                  monthlyQuota: 1000,
                 },
               })),
               update: revokeSpy,
