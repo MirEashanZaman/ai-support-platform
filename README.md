@@ -70,6 +70,8 @@ node ../evals/run-evals.js
 ## Architecture & Engineering Documentation
 - [Setup Guide & Product Requirements Document (PRD)](./docs/PRD.md)
 - [Tech Decisions (Zod, Cybersecurity & Design Patterns)](./docs/TECH_DECISIONS.md)
+- [Security Testing Plan (CodeQL, Gitleaks, Trivy, Dependabot & OWASP ZAP)](./docs/SECURITY_TESTING_PLAN.md)
+- [STRIDE Threat Model, OWASP ASVS & Self Pen-Test Report](./docs/THREAT_MODEL_AND_PENTEST.md)
 - [System Architecture & RLS Transaction Model](./docs/ARCHITECTURE.md)
 - [Engineering Write-Up & OWASP Top 10 Review](./docs/WRITEUP.md)
 - [Oil Supply Integration & Demo Video Guide](./docs/DEMO_VIDEO_GUIDE.md)
