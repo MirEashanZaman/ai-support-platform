@@ -22,7 +22,7 @@ export class InitialMultiTenantRlsSchema1700000000000 implements MigrationInterf
         "name" varchar(120) NOT NULL,
         "tenant_key" varchar(64) NOT NULL UNIQUE,
         "plan" varchar(32) NOT NULL DEFAULT 'starter',
-        "monthly_quota" integer NOT NULL DEFAULT 5000,
+        "monthly_quota" integer NOT NULL DEFAULT 1000,
         "allowed_origins" jsonb NOT NULL DEFAULT '["*"]'::jsonb,
         "widget_config" jsonb NOT NULL DEFAULT '{"botName":"AI Support","primaryColor":"#2563eb","welcomeMessage":"Hi! How can we help you today?"}'::jsonb,
         "created_at" timestamptz NOT NULL DEFAULT now(),
