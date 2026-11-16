@@ -223,7 +223,7 @@ describe('Week 5 — Analytics, Per-Tenant Quotas, Rate Limits, Caching & Securi
         {
           findOne: jest.fn(async () => ({
             id: 'tenant-oil-1',
-            monthlyQuota: 5000,
+            monthlyQuota: 1000,
           })),
         } as any,
         { requireTenantId: () => 'tenant-oil-1' } as any,
