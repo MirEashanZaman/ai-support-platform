@@ -94,7 +94,12 @@ export class DemoTenantsBootstrapService implements OnApplicationBootstrap {
   ) {}
 
   async onApplicationBootstrap(): Promise<void> {
-    if (process.env.NODE_ENV === 'test') {
+    const isProduction = process.env.NODE_ENV === 'production';
+    const isDemoMode =
+      process.env.DEMO_MODE === 'true' ||
+      (!isProduction && process.env.DEMO_MODE !== 'false');
+
+    if (process.env.NODE_ENV === 'test' || !isDemoMode) {
       return;
     }
 
@@ -114,7 +119,7 @@ export class DemoTenantsBootstrapService implements OnApplicationBootstrap {
             name: dataset.tenantName,
             tenantKey: dataset.tenantKey,
             plan: 'pro',
-            monthlyQuota: 5000,
+            monthlyQuota: 1000,
             allowedOrigins: ['*'],
             widgetConfig: {
               botName: `${dataset.tenantName} AI Support`,
