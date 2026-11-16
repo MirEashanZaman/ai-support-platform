@@ -10,7 +10,7 @@
 | **Answer accuracy on the eval set** | 85% or higher | **95.3%** (61/64) | PASS |
 | **Wrong-answer (hallucination) rate** | Under 5% | **0%** (0/104) | PASS |
 | **Correct escalation on unanswerable & injection** | 90% or higher | **100%** (40/40) | PASS |
-| **Tenant isolation tests** | 100% pass | **100%** | PASS |
+| **Tenant isolation tests** | 100% pass | **100%** (`9/9` Jest suites, `50/50` tests) | PASS |
 | **Median first response time** | Under 3 seconds | **0.08 ms** | PASS |
 
 ## 2. Per-Tenant Breakdown
