@@ -4,20 +4,26 @@ import {
   ForbiddenException,
   Get,
   Headers,
+  HttpException,
+  HttpStatus,
   Injectable,
   Logger,
   Module,
   NotFoundException,
   Param,
   Post,
+  UseGuards,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IsNotEmpty, IsString, MaxLength } from 'class-validator';
+import { createHash } from 'crypto';
 import { Repository } from 'typeorm';
 import { Public } from '../common/decorators/public.decorator';
 import { ConversationStatus } from '../common/enums/conversation-status.enum';
 import { MessageSender } from '../common/enums/message-sender.enum';
+import { PublicChatRateLimitGuard } from '../common/guards/public-chat-rate-limit.guard';
 import { maskPii } from '../common/security/pii-masker.util';
+import { sanitizeInput } from '../common/security/xss-sanitizer.util';
 import {
   CitationItem,
   ConversationEntity,
@@ -28,6 +34,7 @@ import {
 import { RlsTransactionService } from '../database/rls-transaction.service';
 import { HandoffGateway, HandoffModule } from '../handoff/handoff.module';
 import { ConversationStateMachine } from '../handoff/state-machine/conversation-state-machine';
+import { RedisService } from '../infra/redis/redis.module';
 import { ClaudeLlmAdapter } from './adapters/claude-llm.adapter';
 import { PgVectorStoreAdapter } from './adapters/vector-store.adapter';
 import { CircuitBreaker } from './resilience/circuit-breaker';
@@ -48,10 +55,10 @@ const UNHELPFUL_FEEDBACK_REGEX =
   /\b(not\s+helpful|didn'?t\s+help|does\s*n'?t\s+help|wrong\s+answer|still\s+not\s+working|useless|that'?s\s+wrong|repeating\s+yourself)\b/i;
 
 /**
- * Facade Pattern (Tech Decisions Section 3 & PRD FR-4 / FR-5):
- * One simple ChatService hiding origin validation, RLS vector retrieval,
- * prompt-injection checks, Claude LLM prompting, Circuit Breaker resilience,
- * confidence scoring, and automatic human handoff escalation.
+ * Facade Pattern (Tech Decisions Section 3 & PRD FR-4 / FR-5 / FR-8):
+ * One simple ChatService hiding origin validation, monthly quota checks,
+ * repeated-question Redis caching, RLS vector retrieval, prompt-injection checks,
+ * Claude LLM prompting, Circuit Breaker resilience, and human handoff escalation.
  */
 @Injectable()
 export class ChatService {
@@ -70,6 +77,7 @@ export class ChatService {
     private readonly vectorStore: PgVectorStoreAdapter,
     private readonly llmAdapter: ClaudeLlmAdapter,
     private readonly handoffGateway: HandoffGateway,
+    private readonly redisService?: RedisService,
   ) {}
 
   getCircuitBreaker(): CircuitBreaker {
@@ -147,6 +155,7 @@ export class ChatService {
     dto: SendChatMessageDto,
     requestOrigin?: string,
   ) {
+    const startTime = Date.now();
     const tenant = await this.tenantRepo.findOne({ where: { tenantKey } });
     if (!tenant) {
       throw new NotFoundException('Tenant workspace not found');
@@ -154,7 +163,14 @@ export class ChatService {
 
     this.verifyAllowedOrigin(tenant.allowedOrigins, requestOrigin);
 
-    const sanitizedMessage = dto.message.trim();
+    const sanitizedMessage = sanitizeInput(dto.message);
+    if (!sanitizedMessage) {
+      throw new HttpException(
+        'Message content cannot be empty after sanitization',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
     this.logger.log(
       `Chat query for tenant=${tenant.tenantKey}: ${maskPii(sanitizedMessage)}`,
     );
@@ -163,6 +179,20 @@ export class ChatService {
       const convRepo = manager.getRepository(ConversationEntity);
       const msgRepo = manager.getRepository(MessageEntity);
       const usageRepo = manager.getRepository(UsageEventEntity);
+
+      // FR-8: Enforce per-tenant monthly message quota
+      const usedThisMonth =
+        typeof usageRepo.count === 'function'
+          ? await usageRepo.count({
+              where: { type: 'chat_message' },
+            })
+          : 0;
+      if (usedThisMonth >= (tenant.monthlyQuota ?? 5000)) {
+        throw new HttpException(
+          'Monthly message quota exceeded for this tenant workspace',
+          HttpStatus.TOO_MANY_REQUESTS,
+        );
+      }
 
       let conversation = await convRepo.findOne({
         where: { customerSession: dto.customerSession },
@@ -189,17 +219,20 @@ export class ChatService {
         }),
       );
 
-      await usageRepo.save(
-        usageRepo.create({
-          tenantId: tenant.id,
-          type: 'chat_message',
-          metadata: { conversationId: conversation.id },
-        }),
-      );
-
       // FR-5: The bot stays silent while an agent owns or is queued for the chat
       if (ConversationStateMachine.isBotMuted(conversation.status)) {
-        // Still notify the live agent inbox of the customer's new message in real time!
+        await usageRepo.save(
+          usageRepo.create({
+            tenantId: tenant.id,
+            type: 'chat_message',
+            metadata: {
+              conversationId: conversation.id,
+              responseTimeMs: Date.now() - startTime,
+              botSilent: true,
+            },
+          }),
+        );
+
         this.handoffGateway.emitTenantEvent(
           tenant.id,
           'handoff:customer_message',
@@ -221,6 +254,13 @@ export class ChatService {
         );
 
       if (explicitHumanRequest) {
+        await this.recordChatUsage(
+          usageRepo,
+          tenant.id,
+          conversation.id,
+          startTime,
+          true,
+        );
         return this.escalateToHuman(
           tenant.id,
           conversation,
@@ -234,6 +274,13 @@ export class ChatService {
 
       // FR-5 Trigger 2: Repeated unhelpful answers
       if (UNHELPFUL_FEEDBACK_REGEX.test(sanitizedMessage)) {
+        await this.recordChatUsage(
+          usageRepo,
+          tenant.id,
+          conversation.id,
+          startTime,
+          true,
+        );
         return this.escalateToHuman(
           tenant.id,
           conversation,
@@ -245,6 +292,47 @@ export class ChatService {
         );
       }
 
+      // PRD Section 16 (AI API costs): Check Redis cache for repeated questions per tenant
+      const cacheKey = this.buildQuestionCacheKey(tenant.id, sanitizedMessage);
+      const cachedRaw = await this.redisService?.get(cacheKey);
+      if (cachedRaw) {
+        try {
+          const cached = JSON.parse(cachedRaw) as {
+            answer: string;
+            citations: CitationItem[];
+            confidence: number;
+          };
+          const cachedBotReply = await msgRepo.save(
+            msgRepo.create({
+              tenantId: tenant.id,
+              conversationId: conversation.id,
+              sender: MessageSender.BOT,
+              content: cached.answer,
+              citations: cached.citations,
+              confidence: cached.confidence,
+            }),
+          );
+          await this.recordChatUsage(
+            usageRepo,
+            tenant.id,
+            conversation.id,
+            startTime,
+            false,
+            true,
+          );
+          return {
+            conversationId: conversation.id,
+            status: conversation.status,
+            botSilent: false,
+            escalationReason: null,
+            cached: true,
+            reply: cachedBotReply,
+          };
+        } catch {
+          // Proceed to fresh retrieval if cache entry is malformed
+        }
+      }
+
       // Stage 1 Retrieval via VectorStoreAdapter (RLS enforced)
       const retrievedChunks = await this.vectorStore.searchSimilarChunks(
         manager,
@@ -253,6 +341,13 @@ export class ChatService {
       );
 
       if (retrievedChunks.length === 0) {
+        await this.recordChatUsage(
+          usageRepo,
+          tenant.id,
+          conversation.id,
+          startTime,
+          true,
+        );
         return this.escalateToHuman(
           tenant.id,
           conversation,
@@ -276,6 +371,13 @@ export class ChatService {
 
         // FR-5 Trigger 3: Low confidence
         if (llmResult.shouldEscalate) {
+          await this.recordChatUsage(
+            usageRepo,
+            tenant.id,
+            conversation.id,
+            startTime,
+            true,
+          );
           return this.escalateToHuman(
             tenant.id,
             conversation,
@@ -312,6 +414,27 @@ export class ChatService {
           }),
         );
 
+        // Cache high-confidence answer for repeated questions (TTL: 10 minutes)
+        if (llmResult.confidence >= 0.6 && this.redisService) {
+          await this.redisService.set(
+            cacheKey,
+            JSON.stringify({
+              answer: llmResult.answer,
+              citations,
+              confidence: llmResult.confidence,
+            }),
+            600,
+          );
+        }
+
+        await this.recordChatUsage(
+          usageRepo,
+          tenant.id,
+          conversation.id,
+          startTime,
+          false,
+        );
+
         return {
           conversationId: conversation.id,
           status: conversation.status,
@@ -323,6 +446,13 @@ export class ChatService {
         // Tech Decisions Section 3: Circuit breaker + retry -> fall back to human handoff
         this.logger.warn(
           `LLM CircuitBreaker fallback triggered for tenant ${tenant.tenantKey}: ${(err as Error).message}`,
+        );
+        await this.recordChatUsage(
+          usageRepo,
+          tenant.id,
+          conversation.id,
+          startTime,
+          true,
         );
         return this.escalateToHuman(
           tenant.id,
@@ -353,6 +483,37 @@ export class ChatService {
         `Origin '${requestOrigin}' is not in this tenant's allowed_origins list`,
       );
     }
+  }
+
+  private buildQuestionCacheKey(tenantId: string, question: string): string {
+    const normalized = question.toLowerCase().replace(/\s+/g, ' ').trim();
+    const digest = createHash('sha256')
+      .update(`${tenantId}:${normalized}`)
+      .digest('hex')
+      .slice(0, 24);
+    return `cache:rag:${tenantId}:${digest}`;
+  }
+
+  private async recordChatUsage(
+    usageRepo: Repository<UsageEventEntity>,
+    tenantId: string,
+    conversationId: string,
+    startTime: number,
+    escalated: boolean,
+    cached = false,
+  ): Promise<void> {
+    await usageRepo.save(
+      usageRepo.create({
+        tenantId,
+        type: 'chat_message',
+        metadata: {
+          conversationId,
+          responseTimeMs: Math.max(1, Date.now() - startTime),
+          escalated,
+          cached,
+        },
+      }),
+    );
   }
 
   private async escalateToHuman(
@@ -428,6 +589,7 @@ export class ChatController {
   }
 
   @Public()
+  @UseGuards(PublicChatRateLimitGuard)
   @Post(':tenantKey/messages')
   async sendMessage(
     @Param('tenantKey') tenantKey: string,
@@ -441,7 +603,12 @@ export class ChatController {
 @Module({
   imports: [HandoffModule],
   controllers: [ChatController],
-  providers: [PgVectorStoreAdapter, ClaudeLlmAdapter, ChatService],
+  providers: [
+    PgVectorStoreAdapter,
+    ClaudeLlmAdapter,
+    PublicChatRateLimitGuard,
+    ChatService,
+  ],
   exports: [PgVectorStoreAdapter, ClaudeLlmAdapter, ChatService],
 })
 export class ChatModule {}
