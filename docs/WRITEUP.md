@@ -44,7 +44,11 @@ We solved both failure modes in `RlsTransactionService`:
 
 ---
 
-## 4. OWASP Top 10 & AI Security Checklist
+## 4. Security Testing & OWASP Top 10 Review
+
+> "Automated SAST, SCA, secret, container, and DAST scans run in CI on every push. A manual pen test against the OWASP Top 10 and LLM Top 10 found 6 issues, all fixed."
+
+Full details, STRIDE Threat Model, OWASP ASVS v4.0 checklist, and the 6 pen-test findings/fixes are documented in [docs/THREAT_MODEL_AND_PENTEST.md](./THREAT_MODEL_AND_PENTEST.md) and [docs/SECURITY_TESTING_PLAN.md](./SECURITY_TESTING_PLAN.md).
 
 | Category | Mitigation Implemented in `ai-support-platform` |
 | :--- | :--- |
