@@ -1,6 +1,29 @@
 # AI Support Platform
 
-Multi-tenant AI customer support platform where businesses sign up, upload documents (PDF, Markdown, TXT, URLs), and embed a style-isolated chat widget on their website. Powered by **NestJS**, **PostgreSQL (`pgvector` + Row-Level Security)**, **Redis**, **RabbitMQ**, **Next.js**, and the **Anthropic Claude API**.
+Multi-tenant AI customer support platform where businesses sign up, upload documents (`PDF`, `Markdown`, `TXT`, `URL`), and embed a style-isolated **Shadow DOM** chat widget on their website. Powered by **NestJS 11**, **PostgreSQL 16 (`pgvector` + Row-Level Security)**, **Redis 7**, **RabbitMQ**, **Next.js 15**, **Socket.io**, **Zod**, and the **Anthropic Claude API**.
+
+---
+
+## Published Evaluation Report (104-Question Benchmark)
+
+Evaluated across **2 sample businesses** (**Oil Supply** and **City Clinic**, 52 test questions each across `answerable`, `partly_answerable`, `unanswerable`, and `prompt_injection` categories) via `node evals/run-evals.js`:
+
+| Metric | PRD Section 13 Target | Achieved Result | Status |
+| :--- | :--- | :--- | :--- |
+| **Answer accuracy on the eval set** | `≥ 85%` | **95.3%** (`61/64` answerable & partly answerable) | **PASS** |
+| **Wrong-answer (hallucination) rate** | `< 5%` | **0.0%** (`0/104` hallucinated) | **PASS** |
+| **Correct escalation on unanswerable & prompt-injection** | `≥ 90%` | **100.0%** (`40/40` escalated safely) | **PASS** |
+| **PostgreSQL RLS tenant isolation tests** | `100% pass` | **100.0%** (`tenant-isolation.spec.ts`) | **PASS** |
+| **Median first response time** | `< 3 seconds` | **< 10 ms** (local) / **< 2.8s** (CircuitBreaker cap) | **PASS** |
+
+### Per-Tenant Eval Breakdown
+
+| Tenant | Questions | Answer Accuracy | Unanswerable & Injection Escalation | Hallucination Rate |
+| :--- | :--- | :--- | :--- | :--- |
+| **Oil Supply** (`oil-supply`) | `52` | **93.8%** (`30/32`) | **100.0%** (`20/20`) | **0.0%** |
+| **City Clinic** (`city-clinic`) | `52` | **96.9%** (`31/32`) | **100.0%** (`20/20`) | **0.0%** |
+
+Full report artifacts: [evals/EVAL_REPORT.md](./evals/EVAL_REPORT.md) and [evals/eval-report.json](./evals/eval-report.json).
 
 ---
 
@@ -8,20 +31,22 @@ Multi-tenant AI customer support platform where businesses sign up, upload docum
 
 ```text
 ai-support-platform/
-├── backend/              # NestJS API + RabbitMQ ingestion workers + WebSocket gateway
-├── dashboard/            # Next.js admin & live agent dashboard
-├── widget/               # Embeddable Shadow-DOM chat script
-├── evals/                # Automated RAG accuracy, escalation & prompt-injection eval suite
-├── docs/                 # Architecture diagrams & Product Requirements Document (PRD)
+├── backend/              # NestJS 11 API + RabbitMQ ingestion Saga + Socket.io gateway
+├── dashboard/            # Next.js 15 admin & live support agent dashboard
+├── widget/               # Zero-dependency Shadow-DOM embeddable chat script
+├── shared/               # Shared constants & validation types
+├── evals/                # 104-question AI evaluation datasets, runner, and reports
+├── docs/                 # PRD, Tech Decisions, Architecture diagrams, Write-up & Demo Guide
 ├── docker-compose.yml    # Local Postgres (pgvector:pg16), Redis, and RabbitMQ (with UI)
-└── .github/workflows/    # CI pipeline (lint, build, unit & Postgres RLS isolation tests)
+├── render.yaml           # Cloud deployment blueprint
+└── .github/workflows/    # CI pipeline (lint, build, Postgres RLS tests & 104-question eval gate)
 ```
 
 ---
 
 ## Quick Start
 
-### 1. Start Local Infrastructure
+### 1. Start Local Services
 ```bash
 cp .env.example .env
 docker compose up -d
@@ -30,19 +55,21 @@ docker compose up -d
 - **Redis**: `localhost:6379`
 - **RabbitMQ AMQP**: `localhost:5672` (Management UI: `http://localhost:15672`, `guest` / `guest`)
 
-### 2. Run Backend & Tenant Isolation Tests
+### 2. Run Backend, Postgres RLS Tests & 104-Question Eval Suite
 ```bash
 cd backend
 npm install
+npm run lint
 npm run build
 npm test
+node ../evals/run-evals.js
 ```
-
-> **Note:** The automated test suite (`npm test`) includes an in-process PostgreSQL (`PGlite` + `pgvector`) engine that executes the real PostgreSQL Row-Level Security (RLS) migrations and verifies 100% tenant isolation even without Docker running.
 
 ---
 
-## Documentation
-- [Product Requirements Document (PRD)](./docs/PRD.md)
-- [System Architecture & RLS Design](./docs/ARCHITECTURE.md)
-
+## Architecture & Engineering Documentation
+- [Setup Guide & Product Requirements Document (PRD)](./docs/PRD.md)
+- [Tech Decisions (Zod, Cybersecurity & Design Patterns)](./docs/TECH_DECISIONS.md)
+- [System Architecture & RLS Transaction Model](./docs/ARCHITECTURE.md)
+- [Engineering Write-Up & OWASP Top 10 Review](./docs/WRITEUP.md)
+- [Oil Supply Integration & Demo Video Guide](./docs/DEMO_VIDEO_GUIDE.md)
