@@ -414,3 +414,58 @@ export const authApi = {
     setAccessToken(null);
   },
 };
+
+export const workspaceApi = {
+  async askAiBot(message: string, customerSession = 'dashboard-playground-1') {
+    const session = await ensureDemoSession();
+    const res = await apiClient.post(
+      `/chat/${encodeURIComponent(session.tenantKey)}/messages`,
+      {
+        customerSession,
+        message,
+      },
+    );
+    return res.data;
+  },
+
+  async getCurrentTenant() {
+    await ensureDemoSession();
+    const res = await apiClient.get('/tenants/me');
+    return res.data;
+  },
+
+  async updateWidgetConfig(payload: {
+    name?: string;
+    allowedOrigins?: string[];
+    widgetConfig?: {
+      botName?: string;
+      primaryColor?: string;
+      welcomeMessage?: string;
+    };
+  }) {
+    await ensureDemoSession();
+    const res = await apiClient.patch('/tenants/me', payload);
+    return res.data;
+  },
+
+  async listTeamMembers() {
+    await ensureDemoSession();
+    const res = await apiClient.get('/users');
+    return res.data as Array<{
+      id: string;
+      email: string;
+      role: 'Owner' | 'Agent' | 'Viewer';
+      createdAt: string;
+    }>;
+  },
+
+  async inviteTeamMember(payload: {
+    email: string;
+    temporaryPassword: string;
+    role: 'Owner' | 'Agent' | 'Viewer';
+  }) {
+    await ensureDemoSession();
+    const res = await apiClient.post('/users/invite', payload);
+    return res.data;
+  },
+};
