@@ -187,7 +187,7 @@ export class ChatService {
               where: { type: 'chat_message' },
             })
           : 0;
-      if (usedThisMonth >= (tenant.monthlyQuota ?? 5000)) {
+      if (usedThisMonth >= (tenant.monthlyQuota ?? 1000)) {
         throw new HttpException(
           'Monthly message quota exceeded for this tenant workspace',
           HttpStatus.TOO_MANY_REQUESTS,
