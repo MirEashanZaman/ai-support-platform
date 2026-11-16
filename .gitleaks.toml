@@ -1,0 +1,18 @@
+title = "AI Support Platform — Gitleaks Secret Scanning Config"
+
+[extend]
+useDefault = true
+
+[[rules]]
+id = "anthropic-claude-api-key"
+description = "Anthropic Claude API Key"
+regex = '''sk-ant-api03-[a-zA-Z0-9\-_]{20,}'''
+tags = ["key", "anthropic", "claude"]
+
+[allowlist]
+description = "Allow template placeholders in .env.example and unit test fixtures"
+paths = [
+  '''^\.env\.example$''',
+  '''^backend/test/.*\.spec\.ts$''',
+  '''^evals/datasets/.*\.json$'''
+]
