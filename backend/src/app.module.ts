@@ -18,6 +18,7 @@ import { EmbeddingsModule } from './infra/embeddings/embeddings.module';
 import { RabbitMqModule } from './infra/rabbitmq/rabbitmq.module';
 import { RedisModule } from './infra/redis/redis.module';
 import { IngestionModule } from './ingestion/ingestion.module';
+import { DemoTenantsBootstrapService } from './seed/demo-tenants.seed';
 import { TenantsModule } from './tenants/tenants.module';
 import { UsersModule } from './users/users.module';
 
@@ -63,6 +64,7 @@ export class HealthController {
   ],
   controllers: [HealthController],
   providers: [
+    DemoTenantsBootstrapService,
     {
       provide: APP_GUARD,
       useClass: JwtAuthGuard,
