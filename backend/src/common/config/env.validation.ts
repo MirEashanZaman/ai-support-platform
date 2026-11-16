@@ -5,6 +5,10 @@ export const envSchema = z.object({
     .enum(['development', 'production', 'test'])
     .default('development'),
   PORT: z.coerce.number().int().positive().default(4000),
+  DEMO_MODE: z
+    .enum(['true', 'false'])
+    .default('true')
+    .transform((val) => val === 'true'),
   FRONTEND_URL: z.string().default('http://localhost:3000'),
   DATABASE_HOST: z.string().default('localhost'),
   DATABASE_PORT: z.coerce.number().int().positive().default(5432),
