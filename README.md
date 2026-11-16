@@ -67,6 +67,28 @@ node ../evals/run-evals.js
 
 ---
 
+## Interactive Demo Guide (5-Step Walkthrough)
+
+On Windows, double-click **`run.bat`** (or start `backend` on `:4000` and `dashboard` on `:3000`) to launch the full demo stack with auto-seeded **Oil Supply** and **City Clinic** tenants (`DEMO_MODE=true`):
+
+1. **Test the Grounded AI Chat Widget (`widget/demo.html`):**
+   - Click the floating **Chat** button in the bottom-right corner.
+   - Ask a grounded question: *"What is the minimum bulk diesel order quantity?"* or *"What is the current bulk diesel price per liter?"*
+   - Observe the cited answer (`500 liters`, `109 BDT`) with its **`Source: Oil_Supply_FAQ.md`** citation pill and **Confidence badge**.
+   - Test the `"I'm not sure"` guardrail: ask *"Do you charter crude oil ships to Singapore?"* or click **`Talk to human`** — the bot refuses to guess and escalates the conversation (`status = waiting`).
+2. **Claim & Reply in the Live Agent Inbox (`http://localhost:3000/inbox`):**
+   - Select the escalated conversation in the queue to inspect the full conversation transcript so far.
+   - Click **`Claim Chat`** (`waiting` → `human`, which strictly mutes the AI bot), send a real-time agent reply, and click **`Close Chat`** when resolved.
+3. **Upload PDF, Markdown, TXT, or URL Documents (`http://localhost:3000/documents`):**
+   - Upload a `.pdf`, `.md`, or `.txt` file (up to 10 MB) via the file picker, add a web page URL, or paste Markdown text.
+   - Watch the RabbitMQ Ingestion Saga transition the document `Uploaded` → `Processing` → `Ready` in `pgvector` and copy your tenant's 1-line `<script>` widget tag.
+4. **Inspect Analytics, Quotas & Documentation Gaps (`http://localhost:3000/analytics`):**
+   - View Total Chats, Bot-Resolved vs. Escalated ratio, Average Response Time (`ms`), the Per-Tenant Monthly Message Quota bar (`used / 1000`), Top Customer Questions, and Unanswered Questions.
+5. **Verify Multi-Tenant Isolation (`http://localhost:3000/login`):**
+   - Click **`Try Demo: City Clinic`** (or sign in at `/signup`) to switch workspaces and confirm that PostgreSQL Row-Level Security (`FORCE ROW LEVEL SECURITY`) keeps every tenant's documents, vectors, chats, and analytics 100% isolated.
+
+---
+
 ## Architecture & Engineering Documentation
 - [Setup Guide & Product Requirements Document (PRD)](./docs/PRD.md)
 - [Tech Decisions (Zod, Cybersecurity & Design Patterns)](./docs/TECH_DECISIONS.md)
