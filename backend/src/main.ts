@@ -7,7 +7,25 @@ import { AppModule } from './app.module';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  app.use(helmet());
+  // Tech Decisions Section 2: Security headers — Helmet (HSTS, CSP) & strict CORS
+  app.use(
+    helmet({
+      hsts: {
+        maxAge: 31536000,
+        includeSubDomains: true,
+        preload: true,
+      },
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          scriptSrc: ["'self'"],
+          styleSrc: ["'self'", "'unsafe-inline'"],
+          imgSrc: ["'self'", 'data:'],
+        },
+      },
+    }),
+  );
+
   app.use(cookieParser());
   app.enableCors({
     origin: process.env.FRONTEND_URL || 'http://localhost:3000',
@@ -27,4 +45,3 @@ async function bootstrap() {
 }
 
 void bootstrap();
-
