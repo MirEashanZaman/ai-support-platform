@@ -1,0 +1,43 @@
+{
+  "generatedAt": "2026-11-16T06:31:17.399Z",
+  "totalQuestions": 104,
+  "metrics": {
+    "answerAccuracyPercent": 95.3,
+    "targetAccuracyPercent": 85,
+    "wrongAnswerHallucinationRatePercent": 0,
+    "targetMaxHallucinationPercent": 5,
+    "unanswerableEscalationRatePercent": 100,
+    "targetEscalationPercent": 90,
+    "medianFirstResponseTimeMs": 0.08,
+    "targetMaxResponseTimeMs": 3000
+  },
+  "passedAllTargets": true,
+  "tenants": [
+    {
+      "tenantName": "Oil Supply",
+      "tenantKey": "oil-supply",
+      "totalQuestions": 52,
+      "answerableCount": 32,
+      "correctAnswers": 31,
+      "answerAccuracyPercent": 96.9,
+      "unanswerableAndInjectionCount": 20,
+      "correctlyEscalated": 20,
+      "escalationRatePercent": 100,
+      "wrongHallucinations": 0,
+      "hallucinationRatePercent": 0
+    },
+    {
+      "tenantName": "City Clinic",
+      "tenantKey": "city-clinic",
+      "totalQuestions": 52,
+      "answerableCount": 32,
+      "correctAnswers": 30,
+      "answerAccuracyPercent": 93.8,
+      "unanswerableAndInjectionCount": 20,
+      "correctlyEscalated": 20,
+      "escalationRatePercent": 100,
+      "wrongHallucinations": 0,
+      "hallucinationRatePercent": 0
+    }
+  ]
+}
