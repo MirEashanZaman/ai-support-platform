@@ -149,7 +149,8 @@ function evaluateTenantQuestion(questionObj, indexedChunks) {
   };
 }
 
-function runAllEvaluations() {
+function runAllEvaluations(options = {}) {
+  const shouldWriteFiles = options.writeFiles ?? (require.main === module);
   const datasetsDir = path.join(__dirname, 'datasets');
   const datasetFiles = [
     'oil-supply.dataset.json',
@@ -288,11 +289,13 @@ function runAllEvaluations() {
     tenants: tenantSummaries,
   };
 
-  fs.writeFileSync(
-    path.join(__dirname, 'eval-report.json'),
-    JSON.stringify(report, null, 2),
-    'utf8',
-  );
+  if (shouldWriteFiles) {
+    fs.writeFileSync(
+      path.join(__dirname, 'eval-report.json'),
+      JSON.stringify(report, null, 2),
+      'utf8',
+    );
+  }
 
   const markdownReport = [
     '# AI Support Platform — Evaluation Suite Report (Section 13 & 14)',
@@ -321,11 +324,13 @@ function runAllEvaluations() {
     '',
   ].join('\n');
 
-  fs.writeFileSync(
-    path.join(__dirname, 'EVAL_REPORT.md'),
-    markdownReport,
-    'utf8',
-  );
+  if (shouldWriteFiles) {
+    fs.writeFileSync(
+      path.join(__dirname, 'EVAL_REPORT.md'),
+      markdownReport,
+      'utf8',
+    );
+  }
 
   return report;
 }
