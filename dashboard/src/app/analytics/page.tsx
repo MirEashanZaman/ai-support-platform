@@ -21,7 +21,7 @@ export default function AnalyticsPage() {
     resolutionRate: 100,
     averageResponseTimeMs: 0,
     monthlyQuotaUsed: 0,
-    monthlyQuotaLimit: 5000,
+    monthlyQuotaLimit: 1000,
     topQuestions: [],
   });
   const [unanswered, setUnanswered] = useState<ChatMessageItem[]>([]);
