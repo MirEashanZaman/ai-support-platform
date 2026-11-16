@@ -1,0 +1,18 @@
+# ============================================================================
+# Render Cloud Blueprint — AI Support Platform (Week 6 Cloud Deployment)
+# ============================================================================
+services:
+  - type: web
+    name: ai-support-platform-backend
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: "4000"
+      - key: EMBEDDING_PROVIDER
+        value: mock
+      - key: RAG_SIMILARITY_THRESHOLD
+        value: "0.72"
