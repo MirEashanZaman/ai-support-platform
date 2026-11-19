@@ -101,4 +101,3 @@ export class RabbitMqService implements OnModuleDestroy {
   exports: [RabbitMqService],
 })
 export class RabbitMqModule {}
-
