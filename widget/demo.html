@@ -267,21 +267,21 @@
       <div class="brand-badge">OS</div>
       <div>
         <div class="brand-title">Oil Supply &amp; Delivery Management Portal</div>
-        <div class="brand-sub">Client Website Host Page · Embedded Widget Tenant: <code>oil-supply</code></div>
+        <div class="brand-sub">Industrial Fuel Supply &amp; Logistics</div>
       </div>
     </div>
     <nav class="nav-links">
       <a class="nav-link nav-link-primary" href="http://localhost:3000/inbox">
-        Open Live Agent Inbox (:3000/inbox)
+        Open Live Agent Inbox
       </a>
       <a class="nav-link" href="http://localhost:3000/documents">
-        Manage Knowledge Docs (:3000/documents)
+        Manage Knowledge Docs
       </a>
       <a class="nav-link" href="http://localhost:3000/analytics">
-        View Analytics (:3000/analytics)
+        View Analytics
       </a>
       <a class="nav-link" href="http://localhost:4000/api-docs">
-        Swagger API (:4000/api-docs)
+        API Documentation
       </a>
     </nav>
   </header>
@@ -289,15 +289,14 @@
   <main class="container">
     <section class="hero-card">
       <div class="pill-row">
-        <span class="pill">Customer-Facing Host Website</span>
-        <span class="pill pill-emerald">Shadow DOM Widget Active (Bottom-Right)</span>
+        <span class="pill">Customer Portal</span>
+        <span class="pill pill-emerald">Live AI Support Active</span>
       </div>
       <h1>Bulk Industrial Diesel, Octane &amp; Lubricants</h1>
       <p>
-        Welcome to the sample customer portal for <strong>Oil Supply</strong>. The floating blue
-        <strong>Chat</strong> widget in the bottom-right corner is loaded via a single
-        <code>&lt;script data-tenant-key="oil-supply"&gt;</code> tag and answers strictly from
-        <code>Oil_Supply_FAQ.md</code> and <code>Oil_Supply_Safety_And_Refund_Policy.pdf</code>.
+        Welcome to the customer portal for <strong>Oil Supply</strong>. Click the floating blue
+        <strong>Chat</strong> button in the bottom-right corner or select any sample question below
+        to get instant, source-cited answers from our official FAQs and safety policies.
       </p>
     </section>
 
@@ -364,10 +363,10 @@
           class="prompt-card"
           onclick="window.sendDemoPrompt('Do you charter crude oil tankers to Singapore?')"
         >
-          <span class="prompt-tag tag-escalate">4. Unanswerable → Human Handoff</span>
+          <span class="prompt-tag tag-escalate">4. Unanswerable &rarr; Human Handoff</span>
           <div class="prompt-question">"Do you charter crude oil tankers to Singapore?"</div>
           <div class="prompt-expected">
-            Expected: Refuses to guess and escalates to <strong>Live Agent Inbox</strong> (<code>status = waiting</code>).
+            Expected: Refuses to guess and escalates to <strong>Live Agent Inbox</strong>.
           </div>
         </div>
 
@@ -389,20 +388,11 @@
           <span class="prompt-tag tag-escalate">6. Explicit Human Agent Request</span>
           <div class="prompt-question">"Please connect me with a human support agent."</div>
           <div class="prompt-expected">
-            Expected: Immediately routes chat to <code>http://localhost:3000/inbox</code> for an agent to claim.
+            Expected: Immediately routes chat to the <strong>Live Agent Inbox</strong> for an agent to claim.
           </div>
         </div>
       </div>
     </section>
-
-    <footer class="isolation-footer">
-      <div>
-        <strong>Shadow DOM CSS Isolation Proof:</strong> This host page defines a global rule
-        <code>button { background: #dc2626 !important; color: yellow !important }</code> (see sample host button on the right),
-        yet the blue AI Support Widget in the bottom-right corner renders untouched inside its Shadow DOM root.
-      </div>
-      <button type="button" class="host-ugly-btn">Host Page Button (Red !important)</button>
-    </footer>
   </main>
 
   <script
