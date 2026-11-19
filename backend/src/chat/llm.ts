@@ -6,7 +6,6 @@ export interface LlmRequest {
   maxTokens: number;
 }
 
-/** Adapter/Strategy: ChatService only knows this interface, so the model can be swapped. */
 export interface LlmProvider {
   complete(req: LlmRequest): Promise<string>;
 }
@@ -47,7 +46,6 @@ export class ClaudeProvider implements LlmProvider {
   }
 }
 
-/** Offline testing only: answers with the start of the first retrieved document. */
 export class MockLlmProvider implements LlmProvider {
   async complete(req: LlmRequest): Promise<string> {
     const m = req.user.match(
