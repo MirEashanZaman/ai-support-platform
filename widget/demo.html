@@ -5,11 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Oil Supply &amp; Delivery Portal — Customer Website + AI Widget Demo (FR-6)</title>
   <style>
-    /*
-     * Host site intentionally defines an aggressive global button rule
-     * (`button { background: #dc2626 !important }`) to prove that the
-     * AI Support Platform widget mounted inside a Shadow DOM root remains 100% isolated.
-     */
+
     * {
       box-sizing: border-box;
     }
@@ -276,16 +272,16 @@
     </div>
     <nav class="nav-links">
       <a class="nav-link nav-link-primary" href="http://localhost:3000/inbox" target="_blank" rel="noopener">
-        Open Live Agent Inbox (:3000/inbox) ↗
+        Open Live Agent Inbox (:3000/inbox)
       </a>
       <a class="nav-link" href="http://localhost:3000/documents" target="_blank" rel="noopener">
-        Manage Knowledge Docs (:3000/documents) ↗
+        Manage Knowledge Docs (:3000/documents)
       </a>
       <a class="nav-link" href="http://localhost:3000/analytics" target="_blank" rel="noopener">
-        View Analytics (:3000/analytics) ↗
+        View Analytics (:3000/analytics)
       </a>
       <a class="nav-link" href="http://localhost:4000/api-docs" target="_blank" rel="noopener">
-        Swagger API (:4000/api-docs) ↗
+        Swagger API (:4000/api-docs)
       </a>
     </nav>
   </header>
@@ -409,7 +405,6 @@
     </footer>
   </main>
 
-  <!-- Single script tag embed (FR-6) -->
   <script
     src="./src/widget.js"
     data-tenant-key="oil-supply"
