@@ -40,10 +40,17 @@ async function bootstrap() {
     }),
   );
 
+  const publicDashboardUrl = (
+    process.env.PUBLIC_DASHBOARD_URL || 'http://localhost:3000'
+  ).replace(/\/+$/, '');
+  const publicApiUrl = (
+    process.env.PUBLIC_API_URL || 'http://localhost:4000'
+  ).replace(/\/+$/, '');
+
   const swaggerConfig = new DocumentBuilder()
     .setTitle('AI Support Platform API')
     .setDescription(
-      'Multi-tenant AI customer support platform with PostgreSQL RLS, pgvector RAG, RabbitMQ ingestion, and real-time human handoff. [Back to Admin Dashboard](http://localhost:3000) | [Back to Customer Portal](http://localhost:4000/widget-demo)',
+      `Multi-tenant AI customer support platform with PostgreSQL RLS, pgvector RAG, RabbitMQ ingestion, and real-time human handoff. [Back to Admin Dashboard](${publicDashboardUrl}) | [Back to Customer Portal](${publicApiUrl}/widget-demo)`,
     )
     .setVersion('1.0.0')
     .addBearerAuth()
