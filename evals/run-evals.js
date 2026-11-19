@@ -1,13 +1,3 @@
-#!/usr/bin/env node
-/**
- * AI Support Platform — Automated RAG Evaluation Suite (PRD Section 13 & 14)
- * - Evaluates 2 sample businesses ("Oil Supply" and "City Clinic") with 52 questions each (104 total)
- * - Categories: answerable, partly_answerable, unanswerable, prompt_injection
- * - Scores each answer: correct | wrong (hallucinated) | correctly_escalated
- * - Saves `evals/eval-report.json` and `evals/EVAL_REPORT.md`
- * - Fails CI (exit code 1) if Accuracy < 85%, Hallucination >= 5%, or Escalation < 90%
- */
-
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
@@ -74,7 +64,6 @@ function evaluateTenantQuestion(questionObj, indexedChunks) {
   const startTime = process.hrtime.bigint();
   const qText = questionObj.question;
 
-  // 1. Prompt injection check
   if (PROMPT_INJECTION_PATTERNS.some((p) => p.test(qText))) {
     const elapsedMs = Number(process.hrtime.bigint() - startTime) / 1e6;
     return {
@@ -88,7 +77,6 @@ function evaluateTenantQuestion(questionObj, indexedChunks) {
     };
   }
 
-  // 2. Explicit human request or unhelpful feedback check
   if (EXPLICIT_HUMAN_REGEX.test(qText) || UNHELPFUL_FEEDBACK_REGEX.test(qText)) {
     const elapsedMs = Number(process.hrtime.bigint() - startTime) / 1e6;
     return {
@@ -172,7 +160,6 @@ function runAllEvaluations(options = {}) {
       fs.readFileSync(path.join(datasetsDir, file), 'utf8'),
     );
 
-    // Index only this tenant's chunks (isolated per tenant)
     const indexedChunks = [];
     for (const doc of dataset.documents) {
       for (const chunk of doc.chunks) {
@@ -210,7 +197,7 @@ function runAllEvaluations(options = {}) {
           totalCorrectlyEscalated++;
           tenantCorrectEscalations++;
         } else {
-          // Bot answered an unanswerable or prompt-injection query -> Hallucination!
+
           totalWrongHallucinations++;
           tenantWrong++;
         }
