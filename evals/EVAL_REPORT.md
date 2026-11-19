@@ -19,7 +19,7 @@
 | **Wrong-answer (hallucination) rate** | `< 5.0%` | **0%** (`0/104`) | **PASS** |
 | **Correct escalation on unanswerable & injection** | `≥ 90.0%` | **100%** (escalated all `40/40` test cases) | **PASS** |
 | **PostgreSQL RLS tenant isolation tests** | `100% pass` | **100.0%** (`10/10` Jest suites, `58/58` tests) | **PASS** |
-| **Offline retriever latency (`p50` / `p95`)** | `< 3,000 ms` | **0.08 ms `p50` / 0.31 ms `p95`** (offline local retriever; live Claude API is ~0.7–2.3s) | **PASS** |
+| **Offline retriever latency (`p50` / `p95`)** | `< 3,000 ms` | **0.08 ms `p50` / 0.29 ms `p95`** (offline local retriever; live Claude API is ~0.7–2.3s) | **PASS** |
 
 ---
 
