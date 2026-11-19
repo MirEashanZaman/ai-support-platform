@@ -19,12 +19,6 @@ export interface VectorStorePort {
   ): Promise<RetrievedChunk[]>;
 }
 
-/**
- * Adapter Pattern (Tech Decisions Section 3):
- * Wraps PostgreSQL + pgvector cosine similarity search behind a clean interface
- * so the vector store can be swapped or mocked without touching ChatService.
- * Executes strictly inside the caller's RLS-scoped EntityManager.
- */
 @Injectable()
 export class PgVectorStoreAdapter implements VectorStorePort {
   constructor(private readonly embeddingsService: EmbeddingsService) {}
