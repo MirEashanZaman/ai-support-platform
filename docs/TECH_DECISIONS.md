@@ -41,10 +41,10 @@ This document records the core technology selections, cybersecurity controls, an
 | **Audit Logging** | `AuditLogService` records tenant-scoped audit trails (`audit.document.uploaded`, `audit.document.deleted`, `audit.user.invited`, `audit.user.role_changed`) inside the RLS transaction. |
 
 ### 2.2 AI-Specific Security & Safety Guardrails
-- **Prompt-Injection Defense:** Retrieved document chunks and customer questions are XML-escaped (`escapeForTag`) and enclosed in `<context><chunk>...</chunk></context>` and `<question>...</question>` tags so the model treats them strictly as passive data rather than executable instructions. Direct override attempts are intercepted and escalated immediately.
-- **Zero-Guessing Output Guardrails:** The assistant answers exclusively from retrieved tenant chunks; low-confidence results (`< 0.65`) or unverified high-stakes queries (`price`, `refund`, `legal`, `medical`, `dosage`) trigger immediate human handoff (`waiting`).
+- **Prompt-Injection Defense (Layered):** Retrieved document chunks and customer questions are XML-escaped (`escapeForTag`) and enclosed in `<context><chunk>...</chunk></context>` and `<question>...</question>` tags so the model treats them strictly as passive data rather than executable instructions. A lightweight regex filter provides a fast first pass for obvious override phrases, while the primary defenses are the XML-escaped context blocks, answering strictly from retrieved documents, and requiring citations.
+- **Zero-Guessing Output Guardrails:** The assistant answers exclusively from retrieved tenant chunks; low-confidence results (`< 0.65`, treated as a rough heuristic signal rather than a calibrated probability) or unverified high-stakes queries (`price`, `refund`, `legal`, `medical`, `dosage`) trigger immediate human handoff (`waiting`).
 - **PII Redaction (`maskPii`):** Customer email addresses and phone numbers are masked prior to application logging (`backend/src/common/security/pii-masker.util.ts`).
-- **Widget Boundary Safety:** The embed script uses a public `data-tenant-key` (never an API secret), enforces the tenant's `allowed_origins` list, and exposes zero cross-tenant or internal metadata.
+- **Widget Boundary Safety & Quota-Drain Tradeoff:** The embed script uses a public `data-tenant-key` (never an API secret) and enforces the tenant's `allowed_origins` list in browsers. Because non-browser clients (`curl`) can spoof `Origin` headers against human-readable slugs (`oil-supply`), production deployments should use high-entropy random tenant keys (`pk_live_<32-byte-hex>`), per-session message limits, and signed session tokens.
 
 ---
 
@@ -53,7 +53,7 @@ This document records the core technology selections, cybersecurity controls, an
 ### 3.1 Architectural Style
 - **Modular Monolith (`NestJS`):** Cleanly separated domain modules (`auth`, `tenants`, `users`, `documents`, `ingestion`, `chat`, `handoff`, `analytics`) sharing a single deployment unit while scaling document ingestion asynchronously over RabbitMQ.
 - **Event-Driven Ingestion & Realtime Handoff:** RabbitMQ decouples file uploads from heavy text chunking and embedding generation; Socket.io broadcasts live escalation and agent events.
-- **Shared-Database, Shared-Schema Multi-Tenancy with Engine-Level RLS:** Maximizes operational efficiency while providing hardware-enforced row isolation.
+- **Shared-Database, Shared-Schema Multi-Tenancy with Database-Engine-Enforced RLS:** Maximizes operational efficiency while providing database-engine-enforced row isolation (`FORCE ROW LEVEL SECURITY`).
 
 ### 3.2 Applied Design Patterns & Concrete Code Locations
 
