@@ -12,13 +12,6 @@ export interface PostgresCheckParams {
   database: string;
 }
 
-/**
- * Verifies whether an external PostgreSQL server is reachable with the configured
- * credentials AND supports the `vector` (pgvector) extension.
- * If Docker (`pgvector/pgvector:pg16`) is not running or a local Windows Postgres
- * instance lacks `pgvector` / uses different credentials, returns `false` so the
- * backend seamlessly boots with the embedded PGlite (Postgres 16 + pgvector + RLS) engine.
- */
 export async function canConnectToPostgresWithVector(
   params: PostgresCheckParams,
 ): Promise<boolean> {
@@ -42,16 +35,10 @@ export async function canConnectToPostgresWithVector(
   }
 }
 
-/**
- * Creates a node-postgres (`pg`) compatible `{ Pool }` driver backed by `@electric-sql/pglite`
- * with the `pgvector` extension enabled. Used automatically in local development when
- * Docker Desktop (`pgvector/pgvector:pg16`) is not running so `run.bat` and `npm run start:dev`
- * work out-of-the-box with zero manual database setup.
- */
 export async function createEmbeddedPgliteDriver(): Promise<{ Pool: any }> {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
+
   const { PGlite } = require('@electric-sql/pglite');
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
+
   const { vector } = require('@electric-sql/pglite/vector');
 
   const pgInstance = await PGlite.create({
@@ -126,7 +113,7 @@ export async function createEmbeddedPgliteDriver(): Promise<{ Pool: any }> {
     }
 
     release() {
-      // Single embedded engine; no socket release required
+
     }
   }
 
