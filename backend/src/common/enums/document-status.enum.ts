@@ -11,4 +11,3 @@ export enum DocumentType {
   MARKDOWN = 'md',
   URL = 'url',
 }
-
