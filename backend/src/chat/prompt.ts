@@ -15,10 +15,6 @@ Rules:
 const escapeText = (s: string) => s.replace(/</g, '&lt;').replace(/>g/, '&gt;').replace(/>/g, '&gt;');
 const escapeAttr = (s: string) => escapeText(s).replace(/"/g, '&quot;');
 
-/**
- * Retrieved text and the question are wrapped and XML-escaped so a document or question
- * cannot close its own `</document>` or `</question>` wrapper tag (Prompt Injection Defense).
- */
 export function buildUserPrompt(
   question: string,
   chunks: RetrievedChunk[],
@@ -40,7 +36,6 @@ export const AnswerSchema = z.object({
 });
 export type ParsedAnswer = z.infer<typeof AnswerSchema>;
 
-/** Returns null if the model did not return valid JSON in the expected shape. */
 export function parseAnswer(raw: string): ParsedAnswer | null {
   const start = raw.indexOf('{');
   const end = raw.lastIndexOf('}');
