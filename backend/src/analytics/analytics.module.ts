@@ -28,11 +28,6 @@ export class AnalyticsService {
     private readonly rlsTransaction: RlsTransactionService,
   ) {}
 
-  /**
-   * FR-7 Analytics & FR-8 Usage limits:
-   * - Total chats, bot-resolved vs. escalated, average response time.
-   * - Top questions and monthly quota usage.
-   */
   async getSummary() {
     const tenantId = this.tenantContext.requireTenantId();
     const tenant = await this.tenantRepo.findOne({ where: { id: tenantId } });
@@ -115,10 +110,6 @@ export class AnalyticsService {
     });
   }
 
-  /**
-   * FR-7 & PRD Section 6 User Story:
-   * "As an Owner, I can see which questions the bot could not answer, so I know which documents to add."
-   */
   async getUnansweredQuestions() {
     return this.rlsTransaction.runInCurrentTenant(async (manager) => {
       const convRepo = manager.getRepository(ConversationEntity);
@@ -148,10 +139,6 @@ export class AnalyticsService {
     });
   }
 
-  /**
-   * Tech Decisions Section 2:
-   * "Audit logs: who did what and when (uploads, deletes, role changes)."
-   */
   async getAuditLogs() {
     return this.rlsTransaction.runInCurrentTenant(async (manager) => {
       const events = await manager.getRepository(UsageEventEntity).find({
