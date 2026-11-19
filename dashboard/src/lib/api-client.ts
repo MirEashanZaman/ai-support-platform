@@ -106,6 +106,7 @@ export function setAccessToken(
         window.localStorage.setItem(STORAGE_TOKEN_KEY, token);
       } else {
         window.localStorage.removeItem(STORAGE_TOKEN_KEY);
+        window.localStorage.removeItem(STORAGE_TENANT_ID_KEY);
       }
       if (tenantId) {
         window.localStorage.setItem(STORAGE_TENANT_ID_KEY, tenantId);
@@ -216,13 +217,28 @@ apiClient.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
     if (
-      error.response?.status === 401 &&
+      (error.response?.status === 401 ||
+        (error.response?.status === 404 &&
+          isDemoModeEnabled() &&
+          (String(originalRequest?.url).includes('/tenants/me') ||
+            String(originalRequest?.url).includes('/users') ||
+            String(originalRequest?.url).includes('/documents') ||
+            String(originalRequest?.url).includes('/handoff') ||
+            String(originalRequest?.url).includes('/analytics')))) &&
       originalRequest &&
       !originalRequest._retry &&
       !String(originalRequest.url).includes('/auth/refresh') &&
       !String(originalRequest.url).includes('/auth/login')
     ) {
       originalRequest._retry = true;
+      if (error.response?.status === 404) {
+        setAccessToken(null);
+        const demo = await ensureDemoSession();
+        if (demo.accessToken) {
+          originalRequest.headers.Authorization = `Bearer ${demo.accessToken}`;
+          return apiClient(originalRequest);
+        }
+      }
       try {
         const refreshRes = await axios.post(
           `${API_BASE_URL}/auth/refresh`,
