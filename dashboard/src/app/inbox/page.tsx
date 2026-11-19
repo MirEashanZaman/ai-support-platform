@@ -10,13 +10,6 @@ import {
 } from '../../lib/api-client';
 import { connectTenantInboxSocket } from '../../lib/socket-client';
 
-/**
- * Week 4 Deliverable — Live Agent Inbox (FR-5 & PRD Section 6):
- * - Auto-authenticates into the seeded "Oil Supply" workspace if not yet logged in
- * - Displays escalated conversations (`waiting` and `human` status) in real time
- * - Shows the full conversation transcript so far (Customer, Bot with citations/confidence, Agent)
- * - Allows Support Agents and Owners to Claim a chat, Reply in real time, and Close the ticket
- */
 export default function LiveAgentInboxPage() {
   const [tenantId, setTenantId] = useState<string>('');
   const [queue, setQueue] = useState<HandoffQueueItem[]>([]);
@@ -58,7 +51,7 @@ export default function LiveAgentInboxPage() {
       const data = await handoffApi.fetchTranscript(conversationId);
       setMessages(data.messages);
     } catch {
-      // Keep current transcript state
+
     }
   }
 
@@ -140,7 +133,6 @@ export default function LiveAgentInboxPage() {
     try {
       let targetConversationId = selectedId;
 
-      // If no escalated chat is currently selected or queue was empty, create/select one automatically
       if (!targetConversationId) {
         const currentQueue = await handoffApi.fetchQueue();
         if (currentQueue.length > 0) {
@@ -216,7 +208,7 @@ export default function LiveAgentInboxPage() {
           minHeight: 560,
         }}
       >
-        {/* Left Column: Escalated Queue */}
+
         <aside
           style={{
             background: '#ffffff',
@@ -289,7 +281,6 @@ export default function LiveAgentInboxPage() {
           )}
         </aside>
 
-        {/* Right Column: Full Conversation Transcript & Agent Actions */}
         <section
           style={{
             background: '#ffffff',
