@@ -36,11 +36,6 @@ const PROMPT_INJECTION_PATTERNS = [
   /system\s+override\s*:/i,
 ];
 
-/**
- * Adapter Pattern (Tech Decisions Section 3 & PRD Section 12 AI Behavior Rules):
- * Wraps the Anthropic Claude API with strict system instructions, untrusted-data XML
- * sandboxing, prompt-injection detection, and Zod output validation.
- */
 @Injectable()
 export class ClaudeLlmAdapter implements LlmPort {
   private readonly logger = new Logger(ClaudeLlmAdapter.name);
@@ -76,7 +71,7 @@ export class ClaudeLlmAdapter implements LlmPort {
   async generateGroundedAnswer(
     input: GenerateGroundedAnswerInput,
   ): Promise<RagLlmResponse> {
-    // Rule 4: Block direct prompt injection attempts in customer messages
+
     if (ClaudeLlmAdapter.isPromptInjectionAttempt(input.customerMessage)) {
       this.logger.warn(
         `Blocked prompt-injection attempt for tenant "${input.tenantName}": ${maskPii(input.customerMessage)}`,
@@ -90,7 +85,6 @@ export class ClaudeLlmAdapter implements LlmPort {
       };
     }
 
-    // Sanitize retrieved chunks against indirect document prompt injection
     const sanitizedChunks = input.retrievedChunks
       .map((c) => ({
         ...c,
@@ -176,11 +170,6 @@ export class ClaudeLlmAdapter implements LlmPort {
     return ragLlmResponseZodSchema.parse(JSON.parse(jsonMatch[0]));
   }
 
-  /**
-   * Grounded local synthesizer used when ANTHROPIC_API_KEY is not configured in dev/CI.
-   * Computes lexical + vector overlap, enforces high-stakes price/policy/legal/medical checks,
-   * and returns Zod-validated structured citations and confidence scores.
-   */
   private synthesizeGroundedLocalAnswer(
     customerMessage: string,
     chunks: RetrievedChunk[],
@@ -210,14 +199,12 @@ export class ClaudeLlmAdapter implements LlmPort {
     const lexicalCoverage =
       queryTokens.length > 0 ? matchedTokens.length / queryTokens.length : 0;
 
-    // Combine vector similarity and lexical overlap into calibrated confidence [0..1]
     const rawConfidence = Math.min(
       0.98,
       Math.max(0, topChunk.similarity * 0.55 + lexicalCoverage * 0.45),
     );
     const confidence = Number(rawConfidence.toFixed(3));
 
-    // Rule 3: Never guess prices, policies, or legal or medical advice when coverage is weak
     const isHighStakesQuery =
       /\b(price|cost|fee|refund|policy|legal|lawsuit|medical|dosage|prescription|doctor)\b/i.test(
         customerMessage,
