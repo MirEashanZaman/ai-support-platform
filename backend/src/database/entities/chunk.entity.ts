@@ -40,14 +40,9 @@ export class ChunkEntity {
   @Column({ type: 'jsonb', default: () => "'{}'::jsonb" })
   metadata: Record<string, unknown>;
 
-  /**
-   * Stored in PostgreSQL as `vector(1536)` via the pgvector extension.
-   * Represented in TypeORM as a string (`[0.01, -0.02, ...]`) for full driver compatibility.
-   */
   @Column({ type: 'text', nullable: true })
   embedding: string | null;
 
   @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   createdAt: Date;
 }
-
