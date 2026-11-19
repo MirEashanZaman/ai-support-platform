@@ -52,8 +52,13 @@ export class WidgetStaticController {
   @Get('widget-demo')
   @Header('Content-Type', 'text/html; charset=utf-8')
   getWidgetDemoHtml(): string {
+    const apiUrl = (process.env.PUBLIC_API_URL || 'http://localhost:4000').replace(/\/+$/, '');
+    const dashboardUrl = (process.env.PUBLIC_DASHBOARD_URL || 'http://localhost:3000').replace(/\/+$/, '');
     const html = readFileSync(resolve(process.cwd(), '../widget/demo.html'), 'utf8');
-    return html.replace('src="./src/widget.js"', 'src="http://localhost:4000/widget.js"');
+    return html
+      .replace('src="./src/widget.js"', `src="${apiUrl}/widget.js"`)
+      .replace(/http:\/\/localhost:4000/g, apiUrl)
+      .replace(/http:\/\/localhost:3000/g, dashboardUrl);
   }
 }
 
