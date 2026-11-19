@@ -40,4 +40,3 @@ export class UpdateTenantDto {
   @Type(() => WidgetConfigDto)
   widgetConfig?: WidgetConfigDto;
 }
-
