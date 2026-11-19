@@ -1,6 +1,6 @@
 # AI Support Platform
 
-**Live Widget Demo:** [`widget/demo.html`](./widget/demo.html) · **Dashboard (`:3000`):** [`http://localhost:3000`](http://localhost:3000) · **OpenAPI Docs (`:4000/api-docs`):** [`http://localhost:4000/api-docs`](http://localhost:4000/api-docs) · **3–5 Min Video Script & Guide:** [`docs/DEMO_VIDEO_GUIDE.md`](./docs/DEMO_VIDEO_GUIDE.md)
+**Live Widget Demo:** [`http://localhost:4000/widget-demo`](http://localhost:4000/widget-demo) ([`widget/demo.html`](./widget/demo.html)) · **Dashboard:** [`http://localhost:3000`](http://localhost:3000) · **OpenAPI Docs:** [`http://localhost:4000/api-docs`](http://localhost:4000/api-docs) · **3–5 Min Video Script & Guide:** [`docs/DEMO_VIDEO_GUIDE.md`](./docs/DEMO_VIDEO_GUIDE.md)
 
 **A production-style multi-tenant B2B AI customer support platform.** Businesses sign up, upload their documents (`PDF`, `Markdown`, `TXT`, `URL`), and paste a 1-line **Shadow DOM** chat widget onto their website. The bot answers strictly from that tenant's documents with source citations, and hands the conversation to a live human support inbox whenever confidence is low or the customer asks for a person.
 
@@ -15,7 +15,7 @@
 ## 1. Quick Start
 
 ### Option A: One-Click Windows Launcher (`run.bat`)
-Double-click **`run.bat`** in the root folder. It automatically creates `.env`, starts Docker (`pgvector`, `Redis`, `RabbitMQ`) or falls back to the built-in **Embedded PostgreSQL 16 + `pgvector` + RLS (`PGlite`)** engine if Docker Desktop is offline, seeds the **Oil Supply** and **City Clinic** demo tenants (`DEMO_MODE=true`), and opens the **Backend (`:4000`)**, **Swagger UI (`:4000/api-docs`)**, **Next.js Dashboard (`:3000`)**, and **Widget Demo (`widget/demo.html`)**.
+Double-click **`run.bat`** in the root folder. It automatically creates `.env`, starts Docker (`pgvector`, `Redis`, `RabbitMQ`) or falls back to the built-in **Embedded PostgreSQL 16 + `pgvector` + RLS (`PGlite`)** engine if Docker Desktop is offline, seeds the **Oil Supply** and **City Clinic** demo tenants (`DEMO_MODE=true`), starts the **Backend (`http://localhost:4000`)** and **Next.js Dashboard (`http://localhost:3000`)**, and opens the Dashboard in a single browser tab (with top-bar links to the **Customer Widget Demo** at `http://localhost:4000/widget-demo` and **OpenAPI Docs** at `http://localhost:4000/api-docs`).
 
 ### Option B: Manual CLI Setup
 ```bash
@@ -28,6 +28,7 @@ npm run lint
 npm run build
 npm test
 node ../evals/run-evals.js
+```
 
 ---
 
@@ -71,7 +72,7 @@ Full evaluation artifacts: [`evals/EVAL_REPORT.md`](./evals/EVAL_REPORT.md) and 
 2. **Claim & Reply in the Live Agent Inbox (`http://localhost:3000/inbox`):**
    - Select the escalated chat in the queue, click **`Claim Chat`** (`waiting` → `human`, which strictly mutes the AI bot), send a real-time agent reply, and click **`Close Chat`** (`human` → `closed`).
 3. **Upload PDF, Markdown, TXT, or URL Documents (`http://localhost:3000/documents`):**
-   - Upload a `.pdf`, `.md`, or `.txt` file (max 10 MB) or add a web URL. Watch the RabbitMQ Ingestion Saga (`SagaOrchestrator` with LIFO compensating rollback) transition the document `Uploaded` → `Processing` → `Ready` in `pgvector`.
+   - Upload a `.pdf`, `.md`, or `.txt` file (max 10 MB) or add a web URL. Watch the RabbitMQ Ingestion Saga (`SagaOrchestrator` with LIFO compensating rollback) transition the document `Uploaded` → `Processing` → `Ready` in `pgvector`, click **`View Indexed Text`** to inspect the extracted chunks (`Chunk #1`, `Chunk #2`, ...), and use the inline **`Test Ask AI`** box to query your uploaded document immediately.
 4. **Inspect Analytics & Quotas (`http://localhost:3000/analytics`):**
    - View Total Chats, Bot-Resolved vs. Escalated ratio, Average Response Time (`ms`), Monthly Message Quota (`used / 1000`), Top Questions, and Unanswered Questions.
 5. **Verify Multi-Tenant Isolation (`http://localhost:3000/login`):**
@@ -103,6 +104,7 @@ ai-support-platform/
 ├── docs/
 ├── docker-compose.yml
 └── .github/workflows/
+```
 
 - [**Setup Guide & Product Requirements Document (PRD)**](./docs/PRD.md)
 - [**Technical Decisions: Stack, Cybersecurity & Design Patterns**](./docs/TECH_DECISIONS.md)
