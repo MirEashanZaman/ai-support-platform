@@ -42,7 +42,7 @@ import { RlsTransactionService } from '../database/rls-transaction.service';
 import { RabbitMqService } from '../infra/rabbitmq/rabbitmq.module';
 import { IngestionSagaService } from '../ingestion/ingestion-saga.service';
 
-export const MAX_UPLOAD_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB (FR-2)
+export const MAX_UPLOAD_SIZE_BYTES = 10 * 1024 * 1024;
 
 export const createDocumentZodSchema = z
   .object({
@@ -164,14 +164,12 @@ export class DocumentsService {
       },
     );
 
-    // FR-3: Upload creates a RabbitMQ job
     await this.rabbitMqService.publishIngestionJob({
       tenantId,
       documentId: doc.id,
       attempt: 1,
     });
 
-    // If rawContent or file buffer is immediately provided, execute the Ingestion Saga worker
     if (fileBuffer || validated.rawContent) {
       await this.ingestionSaga.execute({
         tenantId,
@@ -202,10 +200,6 @@ export class DocumentsService {
     });
   }
 
-  /**
-   * FR-2: Delete a document, which also deletes its embeddings in pgvector (`chunks`)
-   * and records an audit log entry.
-   */
   async deleteDocument(
     id: string,
     actor?: AuthenticatedUser,
