@@ -39,6 +39,9 @@ export class ConversationEntity {
   @JoinColumn({ name: 'claimed_by_user_id' })
   claimedByUser?: UserEntity | null;
 
+  @Column({ name: 'escalation_reason', type: 'text', nullable: true })
+  escalationReason?: string | null;
+
   @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   createdAt: Date;
 
