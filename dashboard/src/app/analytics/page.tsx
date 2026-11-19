@@ -120,7 +120,7 @@ export default function AnalyticsPage() {
             fontSize: 14,
           }}
         >
-          <span>Per-Tenant Monthly Message Quota (FR-8)</span>
+          <span>Per-Tenant Monthly Message Quota</span>
           <span>
             {summary.monthlyQuotaUsed} / {summary.monthlyQuotaLimit} messages (
             {quotaPercent}%)
