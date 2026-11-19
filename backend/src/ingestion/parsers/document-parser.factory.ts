@@ -41,7 +41,6 @@ export class PdfDocumentParser implements DocumentParser {
       throw new BadRequestException('PDF document requires a file buffer or text');
     }
 
-    // Check if the buffer has a valid %PDF- header; if so, run pdf-parse
     const header = input.buffer.subarray(0, 5).toString('utf8');
     if (header.startsWith('%PDF-')) {
       const parseFn =
@@ -62,7 +61,6 @@ export class PdfDocumentParser implements DocumentParser {
       };
     }
 
-    // Fallback for plain text buffers uploaded with .pdf extension in dev/test
     const fallbackText = input.buffer.toString('utf8').trim();
     if (!fallbackText) {
       throw new BadRequestException('Empty PDF buffer');
@@ -172,10 +170,6 @@ export class UrlDocumentParser implements DocumentParser {
   }
 }
 
-/**
- * Factory Pattern (Tech Decisions Section 3):
- * Instantiates the appropriate DocumentParser for PDF, TXT, Markdown, or URL documents.
- */
 @Injectable()
 export class DocumentParserFactory {
   private readonly pdfParser = new PdfDocumentParser();
