@@ -50,16 +50,6 @@ interface IngestionSagaContext {
   embeddings: number[][];
 }
 
-/**
- * Saga Pattern with LIFO Compensating Rollback (Tech Decisions Section 3 & PRD FR-3):
- * Uses `SagaOrchestrator` across 4 transactional stages:
- *   1. `MarkDocumentProcessing` (Compensate: revert status to `Uploaded` or `Failed` with error)
- *   2. `ParseDocumentContent` (Compensate: clear parsed buffer/text state)
- *   3. `ChunkAndEmbedVectors` (Compensate: release generated chunks & vectors)
- *   4. `PersistPgVectorChunksAndMarkReady` (Compensate: delete partial chunks in pgvector)
- *
- * Failed jobs retry up to 3 times via RabbitMQ before routing to the Dead-Letter Queue (`document.ingestion.dlq`).
- */
 @Injectable()
 export class IngestionSagaService {
   private readonly logger = new Logger(IngestionSagaService.name);
@@ -236,7 +226,6 @@ export class IngestionSagaService {
       `Ingestion Saga rolled back for document ${input.documentId} (attempt ${attempt}/${this.maxRetries}): ${safeErrorMsg}`,
     );
 
-    // Queue next retry attempt (1 -> 2 -> 3) or route to Dead-Letter Queue on attempt > 3 (FR-3)
     await this.rabbitMqService.publishIngestionJob({
       tenantId: input.tenantId,
       documentId: input.documentId,
