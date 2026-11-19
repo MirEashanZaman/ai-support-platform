@@ -19,7 +19,6 @@ export default function DashboardHomePage() {
   const [turns, setTurns] = useState<PlaygroundTurn[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // Widget Customizer State (FR-6)
   const [botName, setBotName] = useState('Oil Supply AI Support');
   const [primaryColor, setPrimaryColor] = useState('#2563eb');
   const [welcomeMessage, setWelcomeMessage] = useState(
@@ -30,7 +29,6 @@ export default function DashboardHomePage() {
   );
   const [configSavedMsg, setConfigSavedMsg] = useState<string | null>(null);
 
-  // Team Management State (FR-1)
   const [team, setTeam] = useState<
     Array<{ id: string; email: string; role: 'Owner' | 'Agent' | 'Viewer' }>
   >([]);
@@ -60,7 +58,7 @@ export default function DashboardHomePage() {
           setTeam(members);
         }
       } catch {
-        // Ignore when backend is still starting
+
       }
     }
     void loadWorkspace();
@@ -122,7 +120,7 @@ export default function DashboardHomePage() {
 
   return (
     <div style={{ display: 'grid', gap: 22 }}>
-      {/* How the Platform Works Visual Diagram */}
+
       <section
         style={{
           background: '#0f172a',
@@ -312,7 +310,6 @@ export default function DashboardHomePage() {
         </div>
       </section>
 
-      {/* Interactive AI Bot Playground (Test Automatic AI Answers vs Escalation) */}
       <section
         style={{
           background: '#ffffff',
@@ -530,7 +527,6 @@ export default function DashboardHomePage() {
         )}
       </section>
 
-      {/* Two-Column: Widget Customization (FR-6) & Team RBAC Management (FR-1) */}
       <div
         style={{
           display: 'grid',
