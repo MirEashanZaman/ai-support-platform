@@ -18,11 +18,6 @@ export class CircuitOpenError extends Error {
   }
 }
 
-/**
- * Circuit Breaker + Retry Pattern (Tech Decisions Section 3 & PRD Section 8 NFRs):
- * Protects the RAG Chat pipeline against slow (>3s) or unavailable AI API calls.
- * When the circuit trips or times out, ChatService automatically falls back to a human handoff.
- */
 export class CircuitBreaker {
   private state: CircuitState = CircuitState.CLOSED;
   private consecutiveFailures = 0;
@@ -36,7 +31,7 @@ export class CircuitBreaker {
   constructor(options: CircuitBreakerOptions = {}) {
     this.failureThreshold = options.failureThreshold ?? 3;
     this.cooldownMs = options.cooldownMs ?? 30_000;
-    this.timeoutMs = options.timeoutMs ?? 2_800; // Under 3-second NFR target
+    this.timeoutMs = options.timeoutMs ?? 2_800;
     this.maxRetries = options.maxRetries ?? 1;
   }
 
