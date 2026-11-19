@@ -118,10 +118,6 @@ export class HandoffService {
     });
   }
 
-  /**
-   * PRD Section 6 User Story:
-   * "As an Agent, I see escalated chats in a live inbox with the full conversation so far."
-   */
   async getConversationTranscript(conversationId: string) {
     return this.rlsTransaction.runInCurrentTenant(async (manager) => {
       const convRepo = manager.getRepository(ConversationEntity);
