@@ -16,12 +16,6 @@ export interface SagaExecutionResult<TContext> {
   context: TContext;
 }
 
-/**
- * Saga Orchestrator Pattern (Compensating Transactions — Tech Decisions Section 3):
- * Executes a sequence of distributed/multi-stage steps (`execute`).
- * If any step throws an error, automatically triggers `compensate` in strict
- * reverse (LIFO) order for all previously completed steps to guarantee atomic cleanup.
- */
 export class SagaOrchestrator<TContext> {
   private readonly logger = new Logger(SagaOrchestrator.name);
 
@@ -46,7 +40,6 @@ export class SagaOrchestrator<TContext> {
           `[${this.sagaName}] Step '${step.name}' failed: ${error.message}. Initiating LIFO compensating rollback...`,
         );
 
-        // Execute compensating rollbacks in reverse (LIFO) order
         for (let i = completedSteps.length - 1; i >= 0; i--) {
           const completed = completedSteps[i];
           if (typeof completed.compensate === 'function') {
