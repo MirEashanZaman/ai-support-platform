@@ -1,7 +1,7 @@
 # Embeddable Shadow-DOM Chat Widget (`/widget`)
 
 > **Zero-Dependency, Style-Isolated Customer Support Chat Widget (`FR-6`)**  
-> Embeds onto any host website via a single `<script>` tag, rendering cited RAG answers, calibrated confidence badges, and one-click human handoff inside an isolated **Shadow DOM** boundary.
+> Embeds onto any host website via a single `<script>` tag, rendering cited RAG answers, heuristic confidence badges, and one-click human handoff inside an isolated **Shadow DOM** boundary.
 
 ---
 
