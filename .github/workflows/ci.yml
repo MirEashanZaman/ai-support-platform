@@ -8,8 +8,30 @@ on:
 
 jobs:
   backend-and-evals-verify:
-    name: Backend (Lint, Build, Postgres RLS & AI Evals)
+    name: Backend (Lint, Build, Real Postgres 16 RLS & AI Evals)
     runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres_password
+          POSTGRES_DB: ai_support_platform
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d ai_support_platform"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_HOST: 127.0.0.1
+      DATABASE_PORT: "5432"
+      DATABASE_USER: postgres
+      DATABASE_PASSWORD: postgres_password
+      DATABASE_NAME: ai_support_platform
 
     steps:
       - name: Checkout repository
@@ -37,7 +59,7 @@ jobs:
       - name: Verify Embeddable Widget Bundle
         run: node --check widget/src/widget.js
 
-      - name: Run Unit & Postgres RLS Tenant Isolation Tests
+      - name: Run Unit & Real PostgreSQL 16 RLS Tenant Isolation Tests
         working-directory: ./backend
         run: npm test
 
