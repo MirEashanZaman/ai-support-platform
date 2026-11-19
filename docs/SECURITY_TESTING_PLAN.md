@@ -1,6 +1,6 @@
 # AI Support Platform: Security Testing Plan & CI Verification
 
-**Author:** Mir Eashan Zaman · **Date:** November 2026 · **Version:** 1.0  
+**Author:** Mir Eashan Zaman · **Date:** November 2026 · **Version:** 1.0
 **CI Workflow:** [`.github/workflows/security.yml`](../.github/workflows/security.yml) · **Detailed Report:** [`docs/THREAT_MODEL_AND_PENTEST.md`](./THREAT_MODEL_AND_PENTEST.md)
 
 ---
