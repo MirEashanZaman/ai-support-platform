@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-19T11:19:31.430Z",
+  "generatedAt": "2026-11-19T11:54:35.421Z",
   "evalMode": "offline_deterministic_ci_retriever (104 self-written benchmark questions)",
   "totalQuestions": 104,
   "metrics": {
@@ -10,7 +10,7 @@
     "unanswerableEscalationRatePercent": 100,
     "targetEscalationPercent": 90,
     "medianFirstResponseTimeMs": 0.08,
-    "p95FirstResponseTimeMs": 0.31,
+    "p95FirstResponseTimeMs": 0.29,
     "targetMaxResponseTimeMs": 3000
   },
   "passedAllTargets": true,
