@@ -543,7 +543,7 @@ export default function DashboardHomePage() {
           }}
         >
           <h2 style={{ marginTop: 0, fontSize: 16 }}>
-            2. Customize Embeddable Widget Appearance (FR-6)
+            2. Customize Embeddable Widget Appearance
           </h2>
           <form
             onSubmit={handleSaveWidgetConfig}
@@ -621,7 +621,7 @@ export default function DashboardHomePage() {
           }}
         >
           <h2 style={{ marginTop: 0, fontSize: 16 }}>
-            3. Team &amp; RBAC Role Management (Owner / Agent / Viewer — FR-1)
+            3. Team &amp; RBAC Role Management (Owner / Agent / Viewer)
           </h2>
           <form
             onSubmit={handleInviteMember}
