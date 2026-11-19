@@ -1,4 +1,5 @@
 import React from 'react';
+import NavLinks from '../components/nav-links';
 
 export const metadata = {
   title: 'AI Support Platform — Admin & Agent Dashboard',
@@ -35,52 +36,7 @@ export default function RootLayout({
           <div style={{ fontWeight: 700, fontSize: 17 }}>
             AI Support Platform
           </div>
-          <nav style={{ display: 'flex', gap: 20, fontSize: 14 }}>
-            <a href="/" style={{ color: '#e2e8f0', textDecoration: 'none' }}>
-              Overview
-            </a>
-            <a
-              href="/documents"
-              style={{ color: '#e2e8f0', textDecoration: 'none' }}
-            >
-              Documents &amp; Widget
-            </a>
-            <a
-              href="/inbox"
-              style={{
-                color: '#38bdf8',
-                fontWeight: 600,
-                textDecoration: 'none',
-              }}
-            >
-              Live Agent Inbox
-            </a>
-            <a
-              href="/analytics"
-              style={{ color: '#e2e8f0', textDecoration: 'none' }}
-            >
-              Analytics &amp; Quotas
-            </a>
-            <a
-              href="/login"
-              style={{ color: '#e2e8f0', textDecoration: 'none' }}
-            >
-              Sign In
-            </a>
-            <a
-              href="/signup"
-              style={{
-                backgroundColor: '#2563eb',
-                color: '#ffffff',
-                padding: '6px 12px',
-                borderRadius: 6,
-                fontWeight: 600,
-                textDecoration: 'none',
-              }}
-            >
-              Create Workspace
-            </a>
-          </nav>
+          <NavLinks />
         </header>
         <main style={{ maxWidth: 1200, margin: '0 auto', padding: 24 }}>
           {children}
