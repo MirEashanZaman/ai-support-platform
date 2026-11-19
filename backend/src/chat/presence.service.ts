@@ -2,11 +2,6 @@ import { Injectable } from '@nestjs/common';
 
 const ONLINE_WINDOW_MS = 60_000;
 
-/**
- * Tracks which support agents are online per tenant using a last-heartbeat timestamp map
- * (with Redis/in-memory compatibility). The agent inbox WebSocket gateway calls `heartbeat()`
- * when an agent joins or interacts with the tenant inbox.
- */
 @Injectable()
 export class PresenceService {
   private readonly tenantAgents = new Map<string, Map<string, number>>();
