@@ -41,4 +41,4 @@ Add the following `<script>` snippet prior to the closing `</body>` tag of any h
 
 ## 3. Live Demo Environment
 
-Open [`widget/demo.html`](./demo.html) in any browser while the backend is running on `http://localhost:4000` (or launch via `run.bat`) to interact with the widget embedded inside a sample **Oil Supply & Delivery Management Portal**.
+Open `http://localhost:4000/widget-demo` (or [`widget/demo.html`](./demo.html)) in any browser while the backend is running on `http://localhost:4000` (or launch via `run.bat` and click **`Customer Widget Demo`** in the dashboard navbar) to interact with the widget and its 6 one-click test scenarios inside a sample **Oil Supply & Delivery Management Portal**.
