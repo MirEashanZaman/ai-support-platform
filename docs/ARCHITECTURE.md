@@ -1,13 +1,17 @@
-# AI Support Platform — System Architecture
+# AI Support Platform — System Architecture & Data Flow Specification
+
+> **Architectural Blueprint, Multi-Tenant Row-Level Security (RLS) Transaction Model, and Asynchronous Saga Sequences**
+
+---
 
 ## 0. End-to-End Flow at a Glance
 
 ![How AI Support Platform Works](./how-it-works.png)
 
-- **Setup (Once per document):** `Business owner (Uploads documents)` $\rightarrow$ `Queue and worker (Chunk and embed)` $\rightarrow$ `Vector database (pgvector with RLS)`
-- **Chat (Every question):** `Customer (Asks in widget)` $\rightarrow$ `Search and check (Claude + top chunks from pgvector with RLS)` $\rightarrow$ branches to:
-  1. **`Answer with sources (If confident)`**
-  2. **`Human agent (If unsure or asked)`**
+- **Setup Phase (Once per Document):** `Business owner (Uploads documents)` → `Queue and worker (Chunk and embed)` → `Vector database (pgvector with RLS)`
+- **Runtime Chat Phase (Every Customer Question):** `Customer (Asks in widget)` → `Search and check (Claude + top chunks from pgvector with RLS)` → branches deterministically into:
+  1. **`Answer with sources (If confident)`** — Grounded response with document citation pills and confidence percentage.
+  2. **`Human agent (If unsure or asked)`** — Automatic state transition (`bot` → `waiting`) and real-time WebSocket dispatch to the live agent inbox.
 
 ---
 
@@ -16,8 +20,8 @@
 ```mermaid
 flowchart TB
     subgraph Client_Layer["Client Layer"]
-        Widget["Embeddable Widget (Shadow DOM JS, Plain fetch)"]
-        Dashboard["Admin & Agent Dashboard (Next.js 15, Axios + TanStack Query)"]
+        Widget["Embeddable Widget (Shadow DOM JS, Plain fetch, XSS-safe textContent)"]
+        Dashboard["Admin & Agent Dashboard (Next.js 15, React 19, Axios + TanStack Query)"]
     end
 
     subgraph API_Layer["NestJS 11 Modular Monolith (/backend)"]
@@ -26,18 +30,19 @@ flowchart TB
         WS["WebSocket Gateway (Socket.io /realtime — Tenant & Session Rooms)"]
         RLS["Tenant RLS Transaction Manager (SET LOCAL ROLE app_tenant_user + app.current_tenant_id)"]
         ChatSvc["RAG Chat Facade (Quota -> Cache -> VectorAdapter -> ClaudeAdapter + CircuitBreaker)"]
+        Presence["Presence Service (Redis SET With TTL for Live Agent Online/Offline Detection)"]
         Saga["Ingestion Saga Orchestrator (LIFO Compensating Rollback + 3x Retry + DLQ)"]
     end
 
     subgraph Data_Messaging["Data & Messaging Layer"]
         PG[("PostgreSQL 16 + pgvector (FORCE ROW LEVEL SECURITY / Embedded PGlite Fallback)")]
-        Redis[("Redis 7 (Question Cache, Per-IP & Per-Tenant Rate Limits)")]
+        Redis[("Redis 7 (Question Cache, Rate Limits, Agent Presence Sets)")]
         RMQ[["RabbitMQ (document.ingestion.queue + document.ingestion.dlq)"]]
     end
 
     subgraph External_AI["External AI Providers (Strategy & Adapter Patterns)"]
         EmbedAPI["Embedding Provider (OpenAI / Voyage / Deterministic 1536-dim)"]
-        ClaudeAPI["Anthropic Claude API (Grounded JSON + Prompt-Injection Guard)"]
+        ClaudeAPI["Anthropic Claude API (XML-Escaped Grounded Prompt + JSON Output)"]
     end
 
     Widget <-->|"HTTPS + CORS Origin Check"| Gateway
@@ -55,6 +60,8 @@ flowchart TB
     Saga -->|"Store Chunks + vector(1536)"| RLS
     Gateway --> ChatSvc
     ChatSvc <--> Redis
+    ChatSvc --> Presence
+    Presence <--> Redis
     ChatSvc --> EmbedAPI
     ChatSvc --> RLS
     ChatSvc --> ClaudeAPI
@@ -65,24 +72,25 @@ flowchart TB
 
 ## 2. Multi-Tenant Row-Level Security (RLS) Isolation Model
 
-A critical risk when combining PostgreSQL RLS with ORMs like TypeORM is **connection pooling leakage**: if `SET app.current_tenant_id` is executed at the session level, a pooled connection returned to the pool retains the previous tenant's ID. Furthermore, if the app connects as the `postgres` superuser, PostgreSQL bypasses RLS policies altogether.
+A well-known vulnerability when combining PostgreSQL Row-Level Security with connection-pooled ORMs (such as TypeORM) is **session state bleeding**: if `SET app.current_tenant_id` is executed at the session level, a pooled connection returned to the pool retains the previous tenant's context. Additionally, if the application connects as the `postgres` superuser, PostgreSQL bypasses RLS policies altogether.
 
-To eliminate both risks completely:
-1. **Non-Superuser Role + Transaction-Local Context (`SET LOCAL`):** Every tenant-scoped operation in `RlsTransactionService` executes inside a database transaction that immediately runs:
+To eliminate both failure modes by construction:
+
+1. **Non-Superuser Role + Transaction-Local Context (`SET LOCAL`):** Every tenant-scoped database operation in `RlsTransactionService` runs inside an explicit database transaction that immediately executes:
    ```sql
    SET LOCAL ROLE app_tenant_user;
    SELECT set_config('app.current_tenant_id', $1, true);
    ```
-   Because the third argument `is_local` is `true`, PostgreSQL automatically clears the tenant ID and role the instant the transaction commits or rolls back.
-2. **`FORCE ROW LEVEL SECURITY`:** All 6 tenant-scoped tables (`users`, `documents`, `chunks`, `conversations`, `messages`, `usage_events`) enable both `ENABLE ROW LEVEL SECURITY` and `FORCE ROW LEVEL SECURITY` with policies checking:
+   Because the third argument `is_local` is `true`, PostgreSQL automatically resets both the role and `app.current_tenant_id` the instant the transaction commits or rolls back.
+2. **`FORCE ROW LEVEL SECURITY` Across All Tenant Tables:** All 6 tenant-scoped tables (`users`, `documents`, `chunks`, `conversations`, `messages`, `usage_events`) enable both `ENABLE ROW LEVEL SECURITY` and `FORCE ROW LEVEL SECURITY` with policies enforcing:
    ```sql
    tenant_id = NULLIF(current_setting('app.current_tenant_id', true), '')::uuid
    ```
-   If any code path forgets to set the tenant context, queries fail closed (returning `0` rows or rejecting inserts) rather than leaking data across tenants.
+   If any code path omits the tenant context, queries fail closed (returning `0` rows or rejecting writes) rather than leaking data across tenants.
 
 ---
 
-## 3. Document Ingestion Saga & RAG Escalation Flow
+## 3. Document Ingestion Saga & RAG Escalation Sequence
 
 ```mermaid
 sequenceDiagram
@@ -112,15 +120,26 @@ sequenceDiagram
     Customer->>API: POST /chat/:tenantKey/messages (@RateLimit + Quota Check)
     API->>PG: Cosine similarity search (RLS scoped to tenantId)
     alt High Confidence & Answerable
-        API->>AI: Prompt Claude with <untrusted_business_data> chunks
-        AI-->>API: Zod-validated { answer, citedChunkIds, confidence }
+        API->>AI: Prompt Claude with XML-escaped <context><chunk> blocks
+        AI-->>API: Validated { answer, citations, confidence, needsHuman: false }
         API-->>Customer: Cited answer + Confidence badge (cached in Redis)
     else Low Confidence, Prompt Injection, CircuitBreaker Timeout, or Customer Asks for Human
         API->>PG: ConversationStateMachine: 'bot' -> 'waiting'
         API-->>Agent: WebSocket event `handoff:escalated`
-        API-->>Customer: "Connecting you with a human support agent..."
+        API-->>Customer: Presence-aware handoff message (online vs. offline agent)
         Agent->>API: POST /handoff/:id/claim ('waiting' -> 'human', Bot Muted)
         Agent->>API: POST /handoff/:id/reply (Real-time message to Customer)
         Agent->>API: POST /handoff/:id/close ('human' -> 'closed')
     end
 ```
+
+---
+
+## 4. Conversation Lifecycle State Machine
+
+| Current State | Trigger / Action | Next State | AI Bot Behavior |
+| :--- | :--- | :--- | :--- |
+| **`bot`** | High-confidence answer (`≥ 0.65`) | **`bot`** | Active — answers from tenant chunks with source citations. |
+| **`bot`** | Low confidence (`< 0.65`), prompt injection, customer asks for human, or LLM timeout | **`waiting`** | Paused — notifies agent inbox via WebSocket (`handoff:escalated`). |
+| **`waiting`** | Support Agent clicks **`Claim Chat`** (`POST /handoff/:id/claim`) | **`human`** | Strictly muted — all subsequent messages route solely to the human agent. |
+| **`human`** | Support Agent clicks **`Close Chat`** (`POST /handoff/:id/close`) | **`closed`** | Conversation archived; resolution metrics recorded in `/analytics`. |
