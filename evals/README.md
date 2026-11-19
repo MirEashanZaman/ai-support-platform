@@ -26,12 +26,12 @@ Every question is evaluated against only its tenant's indexed document chunks (`
 
 The evaluation runner (`node evals/run-evals.js`) is executed in GitHub Actions (`.github/workflows/ci.yml`) on every push and pull request. It exits with non-zero code `1` if any of the following thresholds are breached:
 
-| Metric | PRD Section 13 Target | Current Benchmark Score | Status |
+| Metric | PRD Section 13 Target | Current Benchmark Score (104 Self-Written Cases) | Status |
 | :--- | :--- | :--- | :--- |
-| **Answer Accuracy (`answerable` + `partly_answerable`)** | `≥ 85.0%` | **95.3%** (`61/64`) | **PASS** |
+| **Answer Accuracy (`answerable` + `partly_answerable`)** | `≥ 85.0%` | **95.3%** (`61/64` answered; `3` conservative over-escalations) | **PASS** |
 | **Wrong-Answer (Hallucination) Rate** | `< 5.0%` | **0.0%** (`0/104`) | **PASS** |
-| **Unanswerable & Prompt-Injection Escalation Rate** | `≥ 90.0%` | **100.0%** (`40/40`) | **PASS** |
-| **Median First Response Latency** | `< 3,000 ms` | **< 1.0 ms** (local) | **PASS** |
+| **Unanswerable & Prompt-Injection Escalation Rate** | `≥ 90.0%` | **100.0%** (escalated all `40/40` test cases) | **PASS** |
+| **Offline CI Retriever Latency (`p50` / `p95`)** | `< 3,000 ms` | **`0.08 ms p50 / 0.31 ms p95`** (local retriever; live Claude API is `~0.7–2.3s`) | **PASS** |
 
 ---
 
