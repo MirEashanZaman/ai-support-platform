@@ -52,6 +52,16 @@ async function bootstrap() {
   SwaggerModule.setup('api-docs', app, openApiDocument, {
     jsonDocumentUrl: 'api-docs-json',
     customSiteTitle: 'AI Support Platform — API Documentation',
+    customJsStr: `
+      document.addEventListener('click', function (e) {
+        var link = e.target && e.target.closest ? e.target.closest('.swagger-ui .info .description a') : null;
+        if (link && link.href) {
+          e.preventDefault();
+          e.stopPropagation();
+          window.location.href = link.href;
+        }
+      }, true);
+    `,
     customCss: `
       .swagger-ui .info .description a {
         display: inline-block;
