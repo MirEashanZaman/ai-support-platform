@@ -81,7 +81,7 @@ const UNHELPFUL_FEEDBACK_REGEX =
  * Facade Pattern (Tech Decisions Section 3 & PRD FR-4 / FR-5 / FR-8):
  * One simple ChatService hiding origin validation, monthly quota checks,
  * repeated-question Redis caching, RLS vector retrieval, prompt-injection checks,
- * Claude LLM prompting, Circuit Breaker resilience, agent presence, and Bangla/English handoff escalation.
+ * Claude LLM prompting, Circuit Breaker resilience, agent presence, and handoff escalation.
  */
 @Injectable()
 export class ChatService {
@@ -288,7 +288,6 @@ export class ChatService {
         const localizedHandoff = await this.resolveHandoffText(
           tenant.id,
           'customer_requested_human',
-          sanitizedMessage,
         );
         return this.escalateToHuman(
           tenant.id,
@@ -380,7 +379,6 @@ export class ChatService {
         const localizedHandoff = await this.resolveHandoffText(
           tenant.id,
           'no_relevant_chunks',
-          sanitizedMessage,
         );
         return this.escalateToHuman(
           tenant.id,
@@ -412,20 +410,12 @@ export class ChatService {
             startTime,
             true,
           );
-          const isBangla = /[\u0980-\u09FF]/.test(sanitizedMessage);
-          const escalationText = isBangla
-            ? await this.resolveHandoffText(
-                tenant.id,
-                'low_confidence',
-                sanitizedMessage,
-              )
-            : llmResult.answer;
           return this.escalateToHuman(
             tenant.id,
             conversation,
             convRepo,
             msgRepo,
-            escalationText,
+            llmResult.answer,
             llmResult.confidence,
             'low_confidence_or_policy_guard',
           );
@@ -499,7 +489,6 @@ export class ChatService {
         const localizedHandoff = await this.resolveHandoffText(
           tenant.id,
           'ai_circuit_breaker_fallback',
-          sanitizedMessage,
         );
         return this.escalateToHuman(
           tenant.id,
@@ -535,12 +524,11 @@ export class ChatService {
   private async resolveHandoffText(
     tenantId: string,
     reason: EscalationReason,
-    customerText: string,
   ): Promise<string> {
     const onlineCount = this.presenceService
       ? await this.presenceService.onlineCount(tenantId).catch(() => 1)
       : 1;
-    return handoffMessage(reason, onlineCount, customerText);
+    return handoffMessage(reason, onlineCount);
   }
 
   private buildQuestionCacheKey(tenantId: string, question: string): string {
