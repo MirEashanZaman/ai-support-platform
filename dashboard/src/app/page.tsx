@@ -164,7 +164,7 @@ export default function DashboardHomePage() {
             >
               <div style={{ fontWeight: 700, fontSize: 14 }}>Business owner</div>
               <div style={{ fontSize: 12, color: '#cbd5e1', marginTop: 2 }}>
-                Uploads documents (/documents)
+                Uploads documents
               </div>
             </a>
             <span style={{ color: '#94a3b8', fontWeight: 700 }}>&rarr;</span>
@@ -183,7 +183,7 @@ export default function DashboardHomePage() {
                 Queue and worker
               </div>
               <div style={{ fontSize: 12, color: '#a5b4fc', marginTop: 2 }}>
-                Chunk and embed (RabbitMQ Saga)
+                Chunk and embed
               </div>
             </div>
             <span style={{ color: '#94a3b8', fontWeight: 700 }}>&rarr;</span>
@@ -258,7 +258,7 @@ export default function DashboardHomePage() {
                 Search and check
               </div>
               <div style={{ fontSize: 12, color: '#a5b4fc', marginTop: 2 }}>
-                Claude + top chunks (pgvector RLS)
+                Claude + top chunks
               </div>
             </div>
             <span style={{ color: '#94a3b8', fontWeight: 700 }}>&rarr;</span>
@@ -283,7 +283,7 @@ export default function DashboardHomePage() {
                   Answer with sources
                 </div>
                 <div style={{ fontSize: 12, color: '#6ee7b7', marginTop: 2 }}>
-                  If confident (Auto-resolved)
+                  If confident
                 </div>
               </div>
               <a
@@ -300,7 +300,7 @@ export default function DashboardHomePage() {
               >
                 <div style={{ fontWeight: 700, fontSize: 14 }}>Human agent</div>
                 <div style={{ fontSize: 12, color: '#cbd5e1', marginTop: 2 }}>
-                  If unsure or asked (/inbox)
+                  If unsure or asked
                 </div>
               </a>
             </div>
@@ -378,7 +378,7 @@ export default function DashboardHomePage() {
               cursor: 'pointer',
             }}
           >
-            Ask Unanswerable: &ldquo;Charter ships to Singapore?&rdquo; (Escalates to /inbox)
+            Ask Unanswerable: &ldquo;Charter ships to Singapore?&rdquo; (Escalates to Inbox)
           </button>
           <button
             type="button"
@@ -501,7 +501,7 @@ export default function DashboardHomePage() {
                         textDecoration: 'none',
                       }}
                     >
-                      Escalated to Human Agent (${t.escalationReason}) &rarr; View in /inbox
+                      Escalated to Human Agent &rarr; View in Live Agent Inbox
                     </a>
                   ) : (
                     <span
