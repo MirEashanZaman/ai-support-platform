@@ -32,7 +32,7 @@ export default function SignupPage() {
         }}
       >
         <h1 style={{ marginTop: 0, fontSize: 20 }}>
-          Create Business Workspace (FR-1)
+          Create Business Workspace
         </h1>
         <p style={{ color: '#64748b', fontSize: 13 }}>
           Provisions an isolated PostgreSQL RLS tenant and assigns you the Owner role.
