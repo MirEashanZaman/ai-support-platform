@@ -1,7 +1,9 @@
-import { Controller, Get, Module } from '@nestjs/common';
+import { Controller, Get, Header, Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ThrottlerModule } from '@nestjs/throttler';
+import { readFileSync } from 'fs';
+import { resolve } from 'path';
 import { AnalyticsModule } from './analytics/analytics.module';
 import { AuthModule } from './auth/auth.module';
 import { ChatModule } from './chat/chat.module';
@@ -35,6 +37,24 @@ export class HealthController {
   }
 }
 
+@Controller()
+export class WidgetStaticController {
+  @Public()
+  @Get('widget.js')
+  @Header('Content-Type', 'application/javascript; charset=utf-8')
+  getWidgetJs(): string {
+    return readFileSync(resolve(process.cwd(), '../widget/src/widget.js'), 'utf8');
+  }
+
+  @Public()
+  @Get('widget-demo')
+  @Header('Content-Type', 'text/html; charset=utf-8')
+  getWidgetDemoHtml(): string {
+    const html = readFileSync(resolve(process.cwd(), '../widget/demo.html'), 'utf8');
+    return html.replace('src="./src/widget.js"', 'src="http://localhost:4000/widget.js"');
+  }
+}
+
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -62,7 +82,7 @@ export class HealthController {
     HandoffModule,
     AnalyticsModule,
   ],
-  controllers: [HealthController],
+  controllers: [HealthController, WidgetStaticController],
   providers: [
     DemoTenantsBootstrapService,
     {
