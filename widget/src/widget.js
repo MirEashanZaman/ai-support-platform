@@ -245,15 +245,22 @@
 
     appendMessage('bot', state.welcomeMessage, []);
 
-    launcherBtn.addEventListener('click', function () {
-      state.open = !state.open;
+    function setOpen(nextOpen) {
+      state.open = Boolean(nextOpen);
       panel.hidden = !state.open;
       launcherBtn.textContent = state.open ? '×' : 'Chat';
       if (state.open) inputEl.focus();
+    }
+
+    launcherBtn.addEventListener('click', function () {
+      setOpen(!state.open);
     });
 
     async function sendChatMessage(text) {
       if (!text || !text.trim()) return;
+      if (!state.open) {
+        setOpen(true);
+      }
       var clean = text.trim();
       appendMessage('customer', clean, []);
       inputEl.value = '';
@@ -345,11 +352,18 @@
         });
     }
 
-    return {
+    var instance = {
       hostEl: hostEl,
       shadowRoot: shadow,
+      open: function () {
+        setOpen(true);
+      },
       sendChatMessage: sendChatMessage,
     };
+    if (typeof window !== 'undefined' && window.AISupportWidget) {
+      window.AISupportWidget.activeInstance = instance;
+    }
+    return instance;
   }
 
   if (typeof window !== 'undefined') {
