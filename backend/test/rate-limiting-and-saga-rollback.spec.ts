@@ -67,7 +67,7 @@ describe('Rate Limiting (@RateLimit + Redis) & Saga Compensating Rollback Suite'
         'Step1_ReserveState',
         'Step2_GenerateVectors',
       ]);
-      // Strict reverse LIFO order: Step2 compensated before Step1
+
       expect(result.compensatedSteps).toEqual([
         'Step2_GenerateVectors',
         'Step1_ReserveState',
@@ -184,7 +184,6 @@ describe('Rate Limiting (@RateLimit + Redis) & Saga Compensating Rollback Suite'
       );
       expect(headersSent['X-RateLimit-Remaining']).toBe('0');
 
-      // 4th attempt exceeds auth:login limit of 3 -> 429 + Retry-After header
       await expect(
         guard.canActivate(makeAuthCtx('198.51.100.9')),
       ).rejects.toThrow(HttpException);
@@ -213,7 +212,6 @@ describe('Rate Limiting (@RateLimit + Redis) & Saga Compensating Rollback Suite'
           }),
         }) as unknown as ExecutionContext;
 
-      // Two different IPs succeed for tenant 'oil-supply'
       await expect(
         guard.canActivate(makeTenantCtx('10.0.0.1', 'oil-supply')),
       ).resolves.toBe(true);
@@ -221,7 +219,6 @@ describe('Rate Limiting (@RateLimit + Redis) & Saga Compensating Rollback Suite'
         guard.canActivate(makeTenantCtx('10.0.0.2', 'oil-supply')),
       ).resolves.toBe(true);
 
-      // Third IP targeting 'oil-supply' hits perTenantLimit (2) -> 429 Too Many Requests
       try {
         await guard.canActivate(makeTenantCtx('10.0.0.3', 'oil-supply'));
         fail('Expected 429 Too Many Requests');
