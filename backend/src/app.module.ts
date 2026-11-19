@@ -1,4 +1,5 @@
 import { Controller, Get, Header, Module } from '@nestjs/common';
+import { ApiExcludeController } from '@nestjs/swagger';
 import { ConfigModule } from '@nestjs/config';
 import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ThrottlerModule } from '@nestjs/throttler';
@@ -37,6 +38,7 @@ export class HealthController {
   }
 }
 
+@ApiExcludeController()
 @Controller()
 export class WidgetStaticController {
   @Public()
