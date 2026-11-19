@@ -1,9 +1,4 @@
-/**
- * Shared validation constants and schema definitions across Backend (NestJS),
- * Dashboard (Next.js), and Widget.
- */
-
-export const MAX_DOCUMENT_FILE_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB (FR-2)
+export const MAX_DOCUMENT_FILE_SIZE_BYTES = 10 * 1024 * 1024;
 
 export const ALLOWED_DOCUMENT_TYPES = ['pdf', 'txt', 'md', 'url'] as const;
 export type AllowedDocumentType = (typeof ALLOWED_DOCUMENT_TYPES)[number];
