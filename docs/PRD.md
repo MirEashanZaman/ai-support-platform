@@ -155,14 +155,14 @@ Every domain table includes `tenant_id` and enforces `FORCE ROW LEVEL SECURITY` 
 
 ### 13. Success Metrics & Achieved Benchmark Results
 
-| Metric | Target Threshold | Achieved Benchmark Result | Status |
+| Metric | Target Threshold | Achieved Benchmark Result (104 Self-Written Cases) | Status |
 | :--- | :--- | :--- | :--- |
-| **Answer accuracy on the eval set** | `≥ 85%` | **95.3%** (`61/64`) | **PASS** |
+| **Answer accuracy on the eval set** | `≥ 85%` | **95.3%** (`61/64` answered; `3` conservative over-escalations) | **PASS** |
 | **Wrong-answer (hallucination) rate** | `< 5%` | **0.0%** (`0/104`) | **PASS** |
-| **Correct escalation on unanswerable questions** | `≥ 90%` | **100.0%** (`40/40`) | **PASS** |
-| **Tenant isolation tests** | `100% pass` | **100.0%** (`10/10` suites, `58/58` tests) | **PASS** |
+| **Correct escalation on unanswerable questions** | `≥ 90%` | **100.0%** (escalated all `40/40` unanswerable & injection test cases) | **PASS** |
+| **Tenant isolation tests** | `100% pass` | **100.0%** (`10/10` suites, `58/58` tests against `pgvector:pg16` in CI) | **PASS** |
 | **Time to first working bot** | `< 15 minutes` | **< 2 minutes** (`run.bat` / `/signup`) | **PASS** |
-| **Median first response time** | `< 3 seconds` | **< 10 ms** (local) / **< 2.8s** (`CircuitBreaker`) | **PASS** |
+| **Median first response time** | `< 3 seconds` | **`0.08 ms p50 / 0.31 ms p95`** (offline CI retriever) · **`~0.7–2.3s`** (live Claude Haiku; `2.8s` timeout cap) | **PASS** |
 
 ### 14. Evaluation Plan
 - Provision **2 sample businesses** (**Oil Supply** and **City Clinic**) with realistic multi-document knowledge bases.
@@ -185,7 +185,7 @@ Every domain table includes `tenant_id` and enforces `FORCE ROW LEVEL SECURITY` 
 
 | Identified Risk | Engineering Mitigation Implemented |
 | :--- | :--- |
-| **Bot gives wrong or fabricated answers** | Calibrated confidence gate (`0.65`), high-stakes keyword escalation, mandatory citations, 104-question eval suite, and instant human handoff. |
+| **Bot gives wrong or fabricated answers** | Heuristic confidence gate (`0.65`), high-stakes keyword escalation, mandatory citations, 104-question eval suite, and instant human handoff. |
 | **Data leaks between business tenants** | PostgreSQL `FORCE ROW LEVEL SECURITY` with transaction-local `SET LOCAL ROLE app_tenant_user` + `set_config('app.current_tenant_id', tenantId, true)` and CI isolation tests. |
 | **Prompt injection through documents or chat** | XML-escaped `<context>` and `<question>` data tags, regex injection stripping/blocking, and 16 adversarial injection tests in CI. |
 | **Scope creep delays delivery** | Strict adherence to the v1 MVP specification; voice, billing, and third-party chat channels deferred to v2. |
