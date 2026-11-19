@@ -7,12 +7,6 @@ import {
   ChatMessageItem,
 } from '../../lib/api-client';
 
-/**
- * Week 5 Deliverable — Analytics & Per-Tenant Quotas Dashboard (FR-7 & FR-8):
- * - Displays Total chats, Bot-resolved vs. Escalated, Average response time
- * - Displays Per-tenant monthly message quota progress bar
- * - Displays Top customer questions and Unanswered questions (so Owners know which docs to add)
- */
 export default function AnalyticsPage() {
   const [summary, setSummary] = useState<AnalyticsSummary>({
     totalChats: 0,
@@ -36,7 +30,7 @@ export default function AnalyticsPage() {
         setSummary(sumData);
         setUnanswered(unansweredData);
       } catch {
-        // Keep initial state when offline
+
       }
     }
     void load();
@@ -55,7 +49,6 @@ export default function AnalyticsPage() {
         Analytics, Unanswered Questions &amp; Monthly Quotas
       </h1>
 
-      {/* KPI Cards */}
       <div
         style={{
           display: 'grid',
@@ -111,7 +104,6 @@ export default function AnalyticsPage() {
         </div>
       </div>
 
-      {/* Per-Tenant Monthly Quota Card (FR-8) */}
       <section
         style={{
           background: '#ffffff',
@@ -153,7 +145,6 @@ export default function AnalyticsPage() {
         </div>
       </section>
 
-      {/* Top Questions & Unanswered Questions */}
       <div
         style={{
           display: 'grid',
