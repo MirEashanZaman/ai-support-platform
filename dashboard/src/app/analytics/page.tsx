@@ -96,7 +96,7 @@ export default function AnalyticsPage() {
           }}
         >
           <div style={{ fontSize: 12, color: '#64748b' }}>
-            Avg Response Time (Target &lt; 3000 ms)
+            Avg Response Time
           </div>
           <div style={{ fontSize: 28, fontWeight: 700, marginTop: 6 }}>
             {summary.averageResponseTimeMs} ms
