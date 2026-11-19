@@ -43,7 +43,7 @@ async function bootstrap() {
   const swaggerConfig = new DocumentBuilder()
     .setTitle('AI Support Platform API')
     .setDescription(
-      'Multi-tenant AI customer support platform with PostgreSQL RLS, pgvector RAG, RabbitMQ ingestion, and real-time human handoff.',
+      'Multi-tenant AI customer support platform with PostgreSQL RLS, pgvector RAG, RabbitMQ ingestion, and real-time human handoff. [Back to Admin Dashboard](http://localhost:3000) | [Back to Customer Portal](http://localhost:4000/widget-demo)',
     )
     .setVersion('1.0.0')
     .addBearerAuth()
@@ -51,6 +51,24 @@ async function bootstrap() {
   const openApiDocument = SwaggerModule.createDocument(app, swaggerConfig);
   SwaggerModule.setup('api-docs', app, openApiDocument, {
     jsonDocumentUrl: 'api-docs-json',
+    customSiteTitle: 'AI Support Platform — API Documentation',
+    customCss: `
+      .swagger-ui .info .description a {
+        display: inline-block;
+        margin-top: 10px;
+        margin-right: 10px;
+        padding: 7px 14px;
+        background: #2563eb;
+        color: #ffffff !important;
+        text-decoration: none;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 13px;
+      }
+      .swagger-ui .info .description a:hover {
+        background: #1d4ed8;
+      }
+    `,
   });
 
   const port = Number(process.env.PORT || 4000);
