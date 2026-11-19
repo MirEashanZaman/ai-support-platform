@@ -87,10 +87,14 @@ export default function DashboardHomePage() {
   async function handleSaveWidgetConfig(e: React.FormEvent) {
     e.preventDefault();
     setConfigSavedMsg(null);
-    await workspaceApi.updateWidgetConfig({
-      widgetConfig: { botName, primaryColor, welcomeMessage },
-    });
-    setConfigSavedMsg('Saved widget appearance! Refresh demo.html to see it.');
+    try {
+      await workspaceApi.updateWidgetConfig({
+        widgetConfig: { botName, primaryColor, welcomeMessage },
+      });
+      setConfigSavedMsg('Saved widget appearance! Refresh demo.html to see it.');
+    } catch {
+      setConfigSavedMsg('Could not save widget settings. Please try again.');
+    }
   }
 
   async function handleInviteMember(e: React.FormEvent) {
