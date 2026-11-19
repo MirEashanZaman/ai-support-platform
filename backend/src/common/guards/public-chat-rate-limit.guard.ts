@@ -14,13 +14,6 @@ import {
   RateLimitOptions,
 } from '../decorators/rate-limit.decorator';
 
-/**
- * Redis-Backed Rate Limiting Guard (FR-8 & Tech Decisions Sections 1 & 2):
- * - Enforces per-IP and optional per-tenant request throttling via Redis.
- * - Supports route-specific `@RateLimit({ limit, windowSeconds, keyPrefix, perTenantLimit })`
- *   metadata (for Auth brute-force defense, Document uploads, and Public Chat).
- * - Attaches standard `X-RateLimit-Limit`, `X-RateLimit-Remaining`, and `Retry-After` headers.
- */
 @Injectable()
 export class PublicChatRateLimitGuard implements CanActivate {
   private readonly defaultIpLimitPerMinute = 30;
