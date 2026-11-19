@@ -21,6 +21,7 @@ ai-support-platform/
 ├── docs/
 ├── docker-compose.yml
 └── .github/workflows/
+```
 
 ### Step 2: Provision Local Infrastructure Services
 Configure `docker-compose.yml` with three foundational services:
