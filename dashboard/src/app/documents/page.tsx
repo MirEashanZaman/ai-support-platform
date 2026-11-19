@@ -38,7 +38,10 @@ export default function DocumentsPage() {
     status: string;
   } | null>(null);
 
-  const embedScriptTag = `<script src="http://localhost:4000/widget.js" data-tenant-key="${tenantKey}" async></script>`;
+  const apiBaseUrl = (
+    process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'
+  ).replace(/\/+$/, '');
+  const embedScriptTag = `<script src="${apiBaseUrl}/widget.js" data-tenant-key="${tenantKey}" async></script>`;
 
   async function handleCopyScriptTag() {
     try {
