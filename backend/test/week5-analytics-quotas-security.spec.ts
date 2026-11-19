@@ -35,7 +35,6 @@ describe('Week 5 — Analytics, Per-Tenant Quotas, Rate Limits, Caching & Securi
         ).resolves.toBe(true);
       }
 
-      // 31st request from same IP in the 60s window must be blocked with 429
       await expect(
         guard.canActivate(makeCtx('203.0.113.55')),
       ).rejects.toThrow(HttpException);
@@ -126,7 +125,6 @@ describe('Week 5 — Analytics, Per-Tenant Quotas, Rate Limits, Caching & Securi
         redis,
       );
 
-      // 1st question -> hits vector store and populates Redis cache
       const firstReply = await chatService.handleCustomerMessage('oil-supply', {
         customerSession: 'sess-1',
         message: 'What is the minimum bulk diesel order?',
@@ -134,7 +132,6 @@ describe('Week 5 — Analytics, Per-Tenant Quotas, Rate Limits, Caching & Securi
       expect(firstReply.reply?.content).toContain('500 liters');
       expect(mockVectorStore.searchSimilarChunks).toHaveBeenCalledTimes(1);
 
-      // 2nd identical question -> served directly from Redis cache without vector search!
       const secondReply = await chatService.handleCustomerMessage('oil-supply', {
         customerSession: 'sess-1',
         message: 'What is the minimum bulk diesel order?',
@@ -142,7 +139,6 @@ describe('Week 5 — Analytics, Per-Tenant Quotas, Rate Limits, Caching & Securi
       expect((secondReply as any).cached).toBe(true);
       expect(mockVectorStore.searchSimilarChunks).toHaveBeenCalledTimes(1);
 
-      // 3rd question exceeds monthlyQuota (2) -> throws 429 Too Many Requests
       await expect(
         chatService.handleCustomerMessage('oil-supply', {
           customerSession: 'sess-1',
@@ -165,8 +161,8 @@ describe('Week 5 — Analytics, Per-Tenant Quotas, Rate Limits, Caching & Securi
                 return {
                   count: jest
                     .fn()
-                    .mockResolvedValueOnce(10) // totalChats
-                    .mockResolvedValueOnce(2), // escalatedChats
+                    .mockResolvedValueOnce(10)
+                    .mockResolvedValueOnce(2),
                   find: jest.fn(async () => [
                     { id: 'conv-escalated-1', status: ConversationStatus.WAITING },
                   ]),
