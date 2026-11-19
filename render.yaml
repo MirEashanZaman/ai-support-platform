@@ -1,15 +1,35 @@
 services:
   - type: web
-    name: ai-support-platform-backend
-    runtime: docker
-    dockerfilePath: ./backend/Dockerfile
-    dockerContext: ./backend
+    name: ai-support-platform-api
+    runtime: node
+    rootDir: backend
+    plan: free
+    buildCommand: npm install && npm run build
+    startCommand: npm run start:prod
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: development
+      - key: PORT
+        value: "4000"
+      - key: DEMO_MODE
+        value: "true"
+      - key: JWT_ACCESS_SECRET
+        generateValue: true
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+
+  - type: web
+    name: ai-support-platform-dashboard
+    runtime: node
+    rootDir: dashboard
+    plan: free
+    buildCommand: npm install && npm run build
+    startCommand: npm run start
     envVars:
       - key: NODE_ENV
         value: production
-      - key: PORT
-        value: "4000"
-      - key: EMBEDDING_PROVIDER
-        value: mock
-      - key: RAG_SIMILARITY_THRESHOLD
-        value: "0.72"
+      - key: NEXT_PUBLIC_DEMO_MODE
+        value: "true"
+      - key: NEXT_PUBLIC_API_URL
+        sync: false
