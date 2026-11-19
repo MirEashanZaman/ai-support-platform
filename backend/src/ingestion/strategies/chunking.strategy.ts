@@ -15,11 +15,6 @@ export interface ChunkingStrategy {
   ): TextChunkResult[];
 }
 
-/**
- * Sliding Window Chunking Strategy (for PDF, TXT, and URL documents).
- * Splits text into overlapping windows (default 500 chars, 80 chars overlap)
- * while respecting word boundaries where possible.
- */
 export class SlidingWindowChunkingStrategy implements ChunkingStrategy {
   readonly strategyName = 'sliding-window';
 
@@ -81,11 +76,6 @@ export class SlidingWindowChunkingStrategy implements ChunkingStrategy {
   }
 }
 
-/**
- * Markdown Heading-Aware Chunking Strategy (Tech Decisions Section 3 Strategy Pattern).
- * Splits Markdown documents by `#`, `##`, `###` headings and preserves the section title
- * inside each chunk's metadata for high-precision RAG citations.
- */
 export class MarkdownChunkingStrategy implements ChunkingStrategy {
   readonly strategyName = 'markdown-heading';
   private readonly fallbackWindow = new SlidingWindowChunkingStrategy(500, 80);
