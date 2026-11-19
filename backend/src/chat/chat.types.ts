@@ -11,7 +11,7 @@ export const SendMessageSchema = z
       .regex(/^[A-Za-z0-9_-]{4,128}$/)
       .optional(),
     message: z.string().trim().min(1).max(2000),
-    requestHuman: z.boolean().optional(), // set by the widget's "Talk to human" button
+    requestHuman: z.boolean().optional(),
   })
   .refine((data) => Boolean(data.sessionId || data.customerSession), {
     message: 'sessionId or customerSession is required',
@@ -84,5 +84,5 @@ export interface ChatResult {
   botSilent?: boolean;
   escalationReason?: string | null;
   cached?: boolean;
-  reply: ChatReply | null; // null when a human owns the chat or is being waited for
+  reply: ChatReply | null;
 }
