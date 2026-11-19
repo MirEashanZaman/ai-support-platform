@@ -19,18 +19,15 @@ Double-click **`run.bat`** in the root folder. It automatically creates `.env`, 
 
 ### Option B: Manual CLI Setup
 ```bash
-# 1. Start local infrastructure (optional when using PGlite fallback locally)
 cp .env.example .env
 docker compose up -d
 
-# 2. Lint, build, run all 10 Jest suites (58 tests), and run the 104-question eval suite
 cd backend
 npm install
 npm run lint
 npm run build
 npm test
 node ../evals/run-evals.js
-```
 
 ---
 
@@ -38,7 +35,7 @@ node ../evals/run-evals.js
 
 Evaluated across **2 sample businesses** (**Oil Supply** and **City Clinic**, 52 self-written questions each across `answerable`, `partly_answerable`, `unanswerable`, and `prompt_injection` categories) via `node evals/run-evals.js`.
 
-> **What these numbers measure (Offline CI Mode vs. Live Claude API):**  
+> **What these numbers measure (Offline CI Mode vs. Live Claude API):**
 > By default in CI, `evals/run-evals.js` runs in **deterministic offline mode** (using `1536`-dim SHA-256 token embeddings + lexical overlap + heuristic confidence scoring) so GitHub Actions can verify retrieval and escalation boundaries on every push without external API keys. The sub-millisecond latency (`0.08 ms p50 / 0.31 ms p95`) measures in-memory local retrieval only. When running against the live Anthropic `claude-haiku-4-5-20251001` API (`backend/src/chat/llm.ts`), end-to-end latency is typically **`~650–1,200 ms` (`p50`)** and **`~1,600–2,300 ms` (`p95`)**, bounded by the `2,800 ms` `CircuitBreaker` timeout (which is a hard timeout cap, not a latency measurement).
 
 | Metric | PRD Section 13 Target | Achieved Result (104 Self-Written Cases) | Status |
@@ -98,15 +95,14 @@ Full evaluation artifacts: [`evals/EVAL_REPORT.md`](./evals/EVAL_REPORT.md) and 
 
 ```text
 ai-support-platform/
-├── backend/              # NestJS 11 API + RabbitMQ LIFO Saga worker + Socket.io gateway + Swagger
-├── dashboard/            # Next.js 15 & React 19 Admin and Live Support Agent Portal
-├── widget/               # Zero-dependency Shadow-DOM embeddable chat script + demo host page
-├── shared/               # Shared Zod constants, file size limits (10 MB), and status types
-├── evals/                # 104 self-written evaluation questions, runner, and reports
-├── docs/                 # PRD, Tech Decisions, Security Plan, Threat Model, Architecture & Write-Up
-├── docker-compose.yml    # Local PostgreSQL 16 (pgvector/pgvector:pg16), Redis 7, RabbitMQ 3
-└── .github/workflows/    # CI (real pgvector:pg16 + 104 evals) & Security (CodeQL, Gitleaks, Trivy, ZAP)
-```
+├── backend/
+├── dashboard/
+├── widget/
+├── shared/
+├── evals/
+├── docs/
+├── docker-compose.yml
+└── .github/workflows/
 
 - [**Setup Guide & Product Requirements Document (PRD)**](./docs/PRD.md)
 - [**Technical Decisions: Stack, Cybersecurity & Design Patterns**](./docs/TECH_DECISIONS.md)
