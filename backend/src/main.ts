@@ -8,7 +8,6 @@ import { AppModule } from './app.module';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // Tech Decisions Section 2: Security headers — Helmet (HSTS, CSP) & strict CORS
   app.use(
     helmet({
       hsts: {
@@ -41,8 +40,6 @@ async function bootstrap() {
     }),
   );
 
-  // Tech Decisions Section 1 & Security Testing Plan Section 2:
-  // Swagger / OpenAPI specification exposed at /api-docs and /api-docs-json (for OWASP ZAP API scanning)
   const swaggerConfig = new DocumentBuilder()
     .setTitle('AI Support Platform API')
     .setDescription(
