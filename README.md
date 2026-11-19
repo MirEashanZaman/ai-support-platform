@@ -1,158 +1,117 @@
 # AI Support Platform
 
-> **Enterprise-Grade Multi-Tenant B2B AI Customer Support SaaS Platform**  
-> Grounded Retrieval-Augmented Generation (RAG), Strict PostgreSQL Row-Level Security (`FORCE ROW LEVEL SECURITY`), Asynchronous RabbitMQ Ingestion Sagas, Style-Isolated Shadow DOM Web Widget, and Real-Time WebSocket Human Handoff.
+**Live Widget Demo:** [`widget/demo.html`](./widget/demo.html) · **Dashboard (`:3000`):** [`http://localhost:3000`](http://localhost:3000) · **OpenAPI Docs (`:4000/api-docs`):** [`http://localhost:4000/api-docs`](http://localhost:4000/api-docs) · **3–5 Min Video Script & Guide:** [`docs/DEMO_VIDEO_GUIDE.md`](./docs/DEMO_VIDEO_GUIDE.md)
+
+**A production-style multi-tenant B2B AI customer support platform.** Businesses sign up, upload their documents (`PDF`, `Markdown`, `TXT`, `URL`), and paste a 1-line **Shadow DOM** chat widget onto their website. The bot answers strictly from that tenant's documents with source citations, and hands the conversation to a live human support inbox whenever confidence is low or the customer asks for a person.
+
+- **`95.3%` (`61/64`) Answer Accuracy & `0/104` Hallucinations** on our 104 self-written benchmark questions (`3` conservative over-escalations; escalated all `40/40` unanswerable & prompt-injection test cases).
+- **`100%` Database-Enforced Tenant Isolation** via PostgreSQL 16 `FORCE ROW LEVEL SECURITY` (`SET LOCAL ROLE app_tenant_user` + transaction-local `app.current_tenant_id`), verified in CI against `pgvector/pgvector:pg16` across **`10/10` Jest suites (`58/58` tests)**.
+- **`< 15 Minutes` to Live Deployment** with asynchronous RabbitMQ LIFO Ingestion Sagas (`3x` retry + Dead-Letter Queue), Redis rate limiting, and a real-time Socket.io agent handoff inbox.
 
 ![How AI Support Platform Works](./docs/how-it-works.png)
 
 ---
 
-## Table of Contents
-
-1. [Executive Overview](#1-executive-overview)
-2. [Published Evaluation Benchmark (104 Questions)](#2-published-evaluation-benchmark-104-questions)
-3. [Core Capabilities & Engineering Highlights](#3-core-capabilities--engineering-highlights)
-4. [System Architecture & Repository Layout](#4-system-architecture--repository-layout)
-5. [Quick Start & Local Deployment](#5-quick-start--local-deployment)
-6. [Interactive 5-Step Walkthrough](#6-interactive-5-step-walkthrough)
-7. [API Surface & Documentation Index](#7-api-surface--documentation-index)
-
----
-
-## 1. Executive Overview
-
-**AI Support Platform** enables small and mid-size businesses to deploy an accurate, source-cited AI customer support assistant on their website in under 15 minutes. A business signs up for an isolated workspace, uploads its knowledge-base documents (`PDF`, `Markdown`, `TXT`, or live web `URL`s), and embeds a single `<script>` tag.
-
-- **Grounded & Verifiable Answers:** The AI assistant answers customer inquiries strictly from the tenant's uploaded documents, returning clickable document citations and calibrated confidence scores.
-- **Zero-Guessing Safety Guardrail:** When retrieval confidence is below the threshold (`< 0.65`), when high-stakes financial, legal, or medical advice is requested without explicit documentation, when a customer requests a person, or when the external LLM times out (`> 2.8s`), the platform refuses to guess and transitions the conversation to a live human support inbox.
-- **Defense-in-Depth Multi-Tenancy:** Every tenant's users, documents, vector embeddings (`vector(1536)`), conversations, messages, and usage events are isolated at the PostgreSQL engine level using transaction-scoped `SET LOCAL ROLE app_tenant_user`, `set_config('app.current_tenant_id', tenantId, true)`, and `FORCE ROW LEVEL SECURITY`.
-
----
-
-## 2. Published Evaluation Benchmark (104 Questions)
-
-Evaluated across **2 production-representative sample businesses** (**Oil Supply** and **City Clinic**, 52 test questions each spanning `answerable`, `partly_answerable`, `unanswerable`, and `prompt_injection` categories) via `node evals/run-evals.js`:
-
-| Metric | PRD Section 13 Target | Achieved Result | Verification Source | Status |
-| :--- | :--- | :--- | :--- | :--- |
-| **Answer Accuracy on Evaluation Set** | `≥ 85.0%` | **95.3%** (`61/64` answerable & partly answerable) | `evals/run-evals.js` | **PASS** |
-| **Wrong-Answer (Hallucination) Rate** | `< 5.0%` | **0.0%** (`0/104` hallucinated) | `evals/run-evals.js` | **PASS** |
-| **Unanswerable & Prompt-Injection Escalation** | `≥ 90.0%` | **100.0%** (`40/40` escalated safely) | `evals/run-evals.js` | **PASS** |
-| **PostgreSQL RLS Tenant Isolation Suite** | `100% pass` | **100.0%** (`tenant-isolation.spec.ts`) | `backend/test/tenant-isolation.spec.ts` | **PASS** |
-| **Automated Backend & Security Jest Suites** | `100% pass` | **100.0%** (`10/10` test suites, `58/58` tests) | `npm test` (`backend/`) | **PASS** |
-| **Median First Response Latency** | `< 3,000 ms` | **< 10 ms** (local) / **< 2,800 ms** (`CircuitBreaker` cap) | `backend/src/common/resilience/circuit-breaker.ts` | **PASS** |
-
-### Per-Tenant Evaluation Breakdown
-
-| Tenant Workspace | Total Questions | Answerable Accuracy | Unanswerable & Injection Escalation | Hallucination Rate |
-| :--- | :--- | :--- | :--- | :--- |
-| **Oil Supply** (`oil-supply`) | `52` (`32` answerable, `20` adversarial/unanswerable) | **96.9%** (`31/32`) | **100.0%** (`20/20`) | **0.0%** (`0/52`) |
-| **City Clinic** (`city-clinic`) | `52` (`32` answerable, `20` adversarial/unanswerable) | **93.8%** (`30/32`) | **100.0%** (`20/20`) | **0.0%** (`0/52`) |
-
-Full evaluation artifacts: [evals/EVAL_REPORT.md](./evals/EVAL_REPORT.md) and [evals/eval-report.json](./evals/eval-report.json).
-
----
-
-## 3. Core Capabilities & Engineering Highlights
-
-| Domain | Implementation Summary |
-| :--- | :--- |
-| **Multi-Tenant RLS Isolation** | `RlsTransactionService` wraps every tenant database operation in a transaction executing `SET LOCAL ROLE app_tenant_user` and `SELECT set_config('app.current_tenant_id', $1, true)` against tables enforcing `FORCE ROW LEVEL SECURITY`. |
-| **Authentication & RBAC** | `crypto.scrypt` password and refresh-token hashing (`timingSafeEqual`), short-lived Bearer JWTs (`15m`), rotating `HttpOnly` `SameSite=Strict` refresh cookies (`7d`), and `@Roles(Owner, Agent, Viewer)` route guards. |
-| **Asynchronous Ingestion Saga** | 4-stage `SagaOrchestrator` (`Uploaded` → `Processing` → `Ready` / `Failed`) over RabbitMQ (`document.ingestion.queue`) with **LIFO compensating rollbacks**, 3 automatic retries, and Dead-Letter Queue routing (`document.ingestion.dlq`). |
-| **Grounded RAG & XML Sandboxing** | `PgVectorStoreAdapter` retrieves tenant-scoped chunks (`vector(1536)` cosine similarity), wraps untrusted text in XML-escaped `<context><chunk>...</chunk></context>` blocks (`prompt.ts`), and enforces JSON citation and confidence output via `ClaudeLlmAdapter`. |
-| **Live Human Handoff & Presence** | Deterministic `ConversationStateMachine` (`bot` → `waiting` → `human` → `closed`), Redis-backed `PresenceService` for online/offline agent detection, and Socket.io `/realtime` gateway broadcasting to tenant inbox and customer session rooms. |
-| **Embeddable Shadow-DOM Widget** | Zero-dependency Vanilla JS widget (`widget/src/widget.js`) mounted inside an isolated Shadow DOM root (`:host { all: initial }`) with strict `element.textContent` XSS safety, citation pills, confidence badges, and one-click human escalation. |
-| **Rate Limiting, Quotas & Security CI** | Multi-tier Redis rate limiting (`X-RateLimit-*` & `Retry-After` headers), 1,000 messages/month tenant quota enforcement, SHA-256 Redis question caching, PII masking, Helmet HSTS/CSP, and CI pipelines running `CodeQL`, `Gitleaks`, `Trivy`, `npm audit`, and `OWASP ZAP`. |
-
----
-
-## 4. System Architecture & Repository Layout
-
-```text
-ai-support-platform/
-├── backend/              # NestJS 11 modular monolith: Auth, Tenants, Documents, Ingestion Saga, RAG Chat, Handoff, Analytics
-├── dashboard/            # Next.js 15 & React 19 Admin and Live Support Agent Portal (/documents, /inbox, /analytics)
-├── widget/               # Zero-dependency Shadow-DOM embeddable chat script (widget.js) + Oil Supply host demo (demo.html)
-├── shared/               # Cross-package TypeScript & Zod constants, 10 MB upload limits, and status enumerations
-├── evals/                # 104-question evaluation benchmark datasets, automated runner (run-evals.js), and reports
-├── docs/                 # PRD, Tech Decisions, Security Testing Plan, STRIDE Threat Model, System Architecture & Write-Up
-├── docker-compose.yml    # Local infrastructure: PostgreSQL 16 (pgvector/pgvector:pg16), Redis 7, RabbitMQ 3 Management
-├── render.yaml           # Production cloud deployment blueprint
-├── run.bat               # One-click Windows launcher (auto-detects Docker or boots embedded PGlite + pgvector + RLS)
-└── .github/workflows/    # Automated CI & Security pipelines (ci.yml, security.yml)
-```
-
----
-
-## 5. Quick Start & Local Deployment
+## 1. Quick Start
 
 ### Option A: One-Click Windows Launcher (`run.bat`)
-Double-click **`run.bat`** from the repository root. The launcher automatically:
-1. Initializes `.env` from `.env.example` if not present.
-2. Starts Docker containers (`pgvector`, `Redis`, `RabbitMQ`) if Docker Desktop is running, or transparently falls back to the built-in **Embedded PostgreSQL 16 + `pgvector` + Row-Level Security (`PGlite`)** engine when Docker is offline.
-3. Seeds the **Oil Supply** and **City Clinic** sample workspaces when `DEMO_MODE=true`.
-4. Starts the **NestJS Backend (`http://localhost:4000`)**, **Swagger OpenAPI UI (`http://localhost:4000/api-docs`)**, **Next.js Admin & Agent Dashboard (`http://localhost:3000`)**, and **Live Widget Demo (`widget/demo.html`)**.
+Double-click **`run.bat`** in the root folder. It automatically creates `.env`, starts Docker (`pgvector`, `Redis`, `RabbitMQ`) or falls back to the built-in **Embedded PostgreSQL 16 + `pgvector` + RLS (`PGlite`)** engine if Docker Desktop is offline, seeds the **Oil Supply** and **City Clinic** demo tenants (`DEMO_MODE=true`), and opens the **Backend (`:4000`)**, **Swagger UI (`:4000/api-docs`)**, **Next.js Dashboard (`:3000`)**, and **Widget Demo (`widget/demo.html`)**.
 
 ### Option B: Manual CLI Setup
 ```bash
-# 1. Copy environment template and start local infrastructure (optional when using PGlite fallback)
+# 1. Start local infrastructure (optional when using PGlite fallback locally)
 cp .env.example .env
 docker compose up -d
 
-# 2. Install dependencies, lint, build, run all 10 Jest test suites (58 tests), and run the 104-question eval suite
+# 2. Lint, build, run all 10 Jest suites (58 tests), and run the 104-question eval suite
 cd backend
 npm install
 npm run lint
 npm run build
 npm test
 node ../evals/run-evals.js
-
-# 3. Start the backend API (Port 4000) and Next.js dashboard (Port 3000)
-npm run start:dev
-cd ../dashboard && npm install && npm run dev
 ```
 
 ---
 
-## 6. Interactive 5-Step Walkthrough
+## 2. Evaluation Benchmark (104 Self-Written Questions)
 
-1. **Test Grounded RAG Chat & Guardrails (`widget/demo.html`):**
-   - Click the floating **Chat** button in the bottom-right corner of the Oil Supply portal.
-   - Ask a grounded question: *"What is the minimum bulk diesel order quantity?"* or *"What is the current bulk diesel price per liter?"*
-   - Inspect the grounded answer (`500 liters`, `109 BDT`) accompanied by its **`Source: Oil_Supply_FAQ.md`** citation pill and **`Confidence: 94%`** badge.
-   - Test the human escalation guardrail: ask *"Do you charter crude oil ships to Singapore?"* or click **`Talk to human`** — the bot refuses to speculate and transitions the conversation to `status = waiting` with an **`Escalated to human agent`** badge.
-2. **Claim & Resolve in the Live Agent Inbox (`http://localhost:3000/inbox`):**
-   - Select the escalated conversation from the real-time queue to review the complete customer-and-bot transcript.
-   - Click **`Claim Chat`** (`waiting` → `human`, which strictly silences the AI bot), send a real-time agent response, and click **`Close Chat`** upon resolution (`human` → `closed`).
-3. **Ingest PDF, Markdown, TXT, or URL Knowledge (`http://localhost:3000/documents`):**
-   - Upload a `.pdf`, `.md`, or `.txt` document (up to 10 MB), submit a web URL, or paste Markdown content.
-   - Observe the RabbitMQ Ingestion Saga transition the document through `Uploaded` → `Processing` → `Ready` in `pgvector`, and copy your workspace's 1-line `<script>` embed snippet.
-4. **Monitor Deflection Analytics & Quotas (`http://localhost:3000/analytics`):**
-   - Review Total Conversations, Bot-Resolved vs. Escalated ratio, Average Response Time (`ms`), Monthly Message Quota consumption (`used / 1000`), Top Customer Questions, and Unanswered Questions (knowledge gaps).
-5. **Verify Multi-Tenant Isolation (`http://localhost:3000/login`):**
-   - Click **`Try Demo: City Clinic`** (or register a new business at `/signup`) to switch tenant contexts and verify that PostgreSQL `FORCE ROW LEVEL SECURITY` isolates all documents, embeddings, chats, and metrics.
+Evaluated across **2 sample businesses** (**Oil Supply** and **City Clinic**, 52 self-written questions each across `answerable`, `partly_answerable`, `unanswerable`, and `prompt_injection` categories) via `node evals/run-evals.js`.
+
+> **What these numbers measure (Offline CI Mode vs. Live Claude API):**  
+> By default in CI, `evals/run-evals.js` runs in **deterministic offline mode** (using `1536`-dim SHA-256 token embeddings + lexical overlap + heuristic confidence scoring) so GitHub Actions can verify retrieval and escalation boundaries on every push without external API keys. The sub-millisecond latency (`0.08 ms p50 / 0.31 ms p95`) measures in-memory local retrieval only. When running against the live Anthropic `claude-haiku-4-5-20251001` API (`backend/src/chat/llm.ts`), end-to-end latency is typically **`~650–1,200 ms` (`p50`)** and **`~1,600–2,300 ms` (`p95`)**, bounded by the `2,800 ms` `CircuitBreaker` timeout (which is a hard timeout cap, not a latency measurement).
+
+| Metric | PRD Section 13 Target | Achieved Result (104 Self-Written Cases) | Status |
+| :--- | :--- | :--- | :--- |
+| **Answer accuracy on the eval set** | `≥ 85.0%` | **95.3%** (`61/64` answered; `3` over-escalated to human) | **PASS** |
+| **Wrong-answer (hallucination) rate** | `< 5.0%` | **0.0%** (`0/104` hallucinated) | **PASS** |
+| **Unanswerable & prompt-injection escalation** | `≥ 90.0%` | **100.0%** (escalated all `40/40` test cases: `24` unanswerable + `16` injection) | **PASS** |
+| **PostgreSQL RLS tenant isolation tests** | `100% pass` | **100.0%** (`10/10` Jest suites, `58/58` tests in CI against `pgvector:pg16`) | **PASS** |
+| **Response latency (`p50` / `p95`)** | `< 3,000 ms` | **`0.08 ms p50 / 0.31 ms p95`** (offline CI retriever) · **`~0.7–2.3s`** (live Claude Haiku; `2.8s` timeout cap) | **PASS** |
+
+### Per-Tenant Breakdown & The 3 Missed Questions
+
+| Tenant Workspace | Total Questions | Answerable Accuracy | Unanswerable & Injection Escalation | Hallucination Rate |
+| :--- | :--- | :--- | :--- | :--- |
+| **Oil Supply** (`oil-supply`) | `52` | **96.9%** (`31/32` · `1` over-escalated) | **100.0%** (`20/20`) | **0.0%** (`0/52`) |
+| **City Clinic** (`city-clinic`) | `52` | **93.8%** (`30/32` · `2` over-escalated) | **100.0%** (`20/20`) | **0.0%** (`0/52`) |
+
+All **3 misses** out of the 64 answerable questions were **conservative false-negative over-escalations** where paraphrased wording had low token overlap with the source chunk, scoring below the `0.26` heuristic cutoff and escalating to a human agent rather than guessing:
+1. **`oil-q25` (`oil-supply`, score `0.250`):** *"Which days of the week is the depot open for standard operations?"* — Chunk states *"Saturday through Thursday"* without repeating *"days of the week"*.
+2. **`clinic-q24` (`city-clinic`, score `0.197`):** *"Can I pay at City Clinic with Nagad?"* — Short 3-token query had low overlap against the longer payment methods chunk.
+3. **`clinic-q26` (`city-clinic`, score `0.163`):** *"until what time in the evening are outpatient consultations open?"* — Chunk uses *"9:00 AM to 9:00 PM"* rather than *"time in the evening"*.
+
+Full evaluation artifacts: [`evals/EVAL_REPORT.md`](./evals/EVAL_REPORT.md) and [`evals/eval-report.json`](./evals/eval-report.json).
 
 ---
 
-## 7. API Surface & Documentation Index
+## 3. Interactive 5-Step Walkthrough
 
-### Key REST Endpoints (`http://localhost:4000`)
+1. **Test Grounded RAG Chat & Guardrails (`widget/demo.html`):**
+   - Click the floating **Chat** button in the bottom-right corner.
+   - Ask: *"What is the minimum bulk diesel order quantity?"* → Returns `500 liters` with a **`Source: Oil_Supply_FAQ.md`** citation pill and a heuristic **`Confidence: 94%`** indicator (note: confidence is a rough retrieval/self-reported signal used for the `0.65` handoff threshold, not a statistically calibrated probability).
+   - Ask an unanswerable question (*"Do you charter crude oil ships to Singapore?"*) or click **`Talk to human`** → The bot declines to guess and moves the conversation to `status = waiting`.
+2. **Claim & Reply in the Live Agent Inbox (`http://localhost:3000/inbox`):**
+   - Select the escalated chat in the queue, click **`Claim Chat`** (`waiting` → `human`, which strictly mutes the AI bot), send a real-time agent reply, and click **`Close Chat`** (`human` → `closed`).
+3. **Upload PDF, Markdown, TXT, or URL Documents (`http://localhost:3000/documents`):**
+   - Upload a `.pdf`, `.md`, or `.txt` file (max 10 MB) or add a web URL. Watch the RabbitMQ Ingestion Saga (`SagaOrchestrator` with LIFO compensating rollback) transition the document `Uploaded` → `Processing` → `Ready` in `pgvector`.
+4. **Inspect Analytics & Quotas (`http://localhost:3000/analytics`):**
+   - View Total Chats, Bot-Resolved vs. Escalated ratio, Average Response Time (`ms`), Monthly Message Quota (`used / 1000`), Top Questions, and Unanswered Questions.
+5. **Verify Multi-Tenant Isolation (`http://localhost:3000/login`):**
+   - Click **`Try Demo: City Clinic`** to switch workspaces and verify that PostgreSQL `FORCE ROW LEVEL SECURITY` isolates all documents, vectors, chats, and analytics.
 
-| Module | Endpoints | Protection & Controls |
-| :--- | :--- | :--- |
-| **Auth & Tenants** | `POST /auth/signup`, `POST /auth/login`, `POST /auth/refresh`, `POST /auth/logout`, `GET /tenants/me`, `PATCH /tenants/me`, `DELETE /tenants/me` | `@RateLimit` (`10 req/min`), `scrypt`, rotating `HttpOnly` refresh cookies, `Owner` RBAC |
-| **Team Users** | `GET /users`, `POST /users/invite`, `PATCH /users/:id/role` | `JwtAuthGuard`, `RolesGuard` (`Owner`), RLS transaction, `AuditLogService` |
-| **Documents** | `POST /documents`, `POST /documents/upload`, `GET /documents`, `DELETE /documents/:id` | 10 MB upload limit, `Owner` RBAC, RabbitMQ LIFO Saga + 3x retry + DLQ |
-| **Public RAG Chat** | `POST /chat/:tenantKey/messages`, `POST /chat/:tenantKey/escalate`, `GET /chat/:tenantKey/conversations/:id/messages` | Per-IP (`30/min`) & per-tenant (`120/min`) Redis rate limit, `1000/mo` quota, CORS origin check |
-| **Human Handoff** | `GET /handoff/queue`, `POST /handoff/:id/claim`, `POST /handoff/:id/reply`, `POST /handoff/:id/close`, `POST /handoff/presence/heartbeat` | `JwtAuthGuard`, `RolesGuard` (`Owner`, `Agent`), `ConversationStateMachine`, Socket.io `/realtime` |
-| **Analytics** | `GET /analytics/summary`, `GET /analytics/unanswered`, `GET /analytics/audit-logs` | `JwtAuthGuard`, `RolesGuard` (`Owner`, `Agent`, `Viewer`), RLS transaction |
+---
 
-### Engineering Documentation (`/docs`)
+## 4. Known Limitations & Honest Tradeoffs
+
+- **Public `tenantKey` Quota-Draining Risk:** In demo mode, tenant keys are human-readable slugs (`oil-supply`, `city-clinic`). While browser requests check `allowed_origins` and enforce per-IP (`30/min`) and per-tenant (`120/min`) Redis rate limits, a non-browser attacker using `curl` with a spoofed `Origin` header and rotating IPs could still drain a tenant's `1,000` monthly message quota. **Production mitigation:** replace human-readable slugs with high-entropy random public keys (`pk_live_<32-byte-hex>`), enforce per-session message caps, and gate public session creation behind a signed short-lived session token or Turnstile/CAPTCHA challenge.
+- **Single-Turn RAG Retrieval:** Each customer question retrieves top-$k$ chunks based on the current message text (`prompt.ts`). Multi-turn coreference resolution (e.g., *"What is the bulk diesel price?"* followed by *"And what if I order 6,000 liters of it?"*) is not yet rewritten into a standalone search query.
+- **No OCR for Scanned Image-Only PDFs:** `PdfDocumentParser` (`pdf-parse`) extracts embedded digital text streams. Scanned image-only PDFs without an embedded text layer require an external OCR pass (such as Tesseract or Document AI) before upload.
+- **English-Only Scope (Bangla Not Supported in v1):** All system prompts, handoff messages, and evaluation datasets are standardized on English-only for v1; Bangla and multilingual retrieval are untested and deferred to v2.
+- **Heuristic Confidence Signal & Regex Injection Filter:** The confidence badge (`0..1`) is an uncalibrated heuristic/LLM signal rather than a temperature-scaled probability. Similarly, regex prompt-injection patterns can be bypassed by creative phrasing or false-positive on benign sentences like *"ignore my previous order"*; they serve only as a fast first filter, while the real defense is XML-escaping `<context><chunk>` blocks (`prompt.ts`), restricting answers to retrieved chunks, and requiring citations.
+- **ASVS Self-Assessment & Passive DAST Baseline:** Our OWASP ASVS v4.0 table in [`docs/THREAT_MODEL_AND_PENTEST.md`](./docs/THREAT_MODEL_AND_PENTEST.md) is an **ASVS-inspired self-assessment** (with items such as Owner Step-Up 2FA/MFA, automated KMS key rotation, and signed widget session tokens marked **Partial / Planned for v2**). In addition, the CI OWASP ZAP job runs a **passive** baseline scan against `/api-docs-json`, not an active full fuzzing attack.
+- **Real Postgres in CI vs. Embedded PGlite Fallback Locally:** Locally, if Docker Desktop is not running, `DatabaseModule` falls back to embedded `PGlite` (`PostgreSQL 16 + pgvector + RLS`). In GitHub Actions CI (`.github/workflows/ci.yml`), a real `pgvector/pgvector:pg16` service container is provisioned so all RLS and vector tests run against real PostgreSQL 16.
+
+---
+
+## 5. Repository Structure & Documentation
+
+```text
+ai-support-platform/
+├── backend/              # NestJS 11 API + RabbitMQ LIFO Saga worker + Socket.io gateway + Swagger
+├── dashboard/            # Next.js 15 & React 19 Admin and Live Support Agent Portal
+├── widget/               # Zero-dependency Shadow-DOM embeddable chat script + demo host page
+├── shared/               # Shared Zod constants, file size limits (10 MB), and status types
+├── evals/                # 104 self-written evaluation questions, runner, and reports
+├── docs/                 # PRD, Tech Decisions, Security Plan, Threat Model, Architecture & Write-Up
+├── docker-compose.yml    # Local PostgreSQL 16 (pgvector/pgvector:pg16), Redis 7, RabbitMQ 3
+└── .github/workflows/    # CI (real pgvector:pg16 + 104 evals) & Security (CodeQL, Gitleaks, Trivy, ZAP)
+```
+
 - [**Setup Guide & Product Requirements Document (PRD)**](./docs/PRD.md)
 - [**Technical Decisions: Stack, Cybersecurity & Design Patterns**](./docs/TECH_DECISIONS.md)
-- [**Security Testing Plan: SAST, SCA, Secrets, Container & DAST**](./docs/SECURITY_TESTING_PLAN.md)
-- [**STRIDE Threat Model, OWASP ASVS v4.0 & Self Pen-Test Report**](./docs/THREAT_MODEL_AND_PENTEST.md)
+- [**Security Testing Plan: SAST, SCA, Secrets, Container & Passive DAST**](./docs/SECURITY_TESTING_PLAN.md)
+- [**STRIDE Threat Model, Self-Assessed OWASP ASVS & Self Pen-Test Report**](./docs/THREAT_MODEL_AND_PENTEST.md)
 - [**System Architecture, RLS Transaction Model & Sequence Diagrams**](./docs/ARCHITECTURE.md)
-- [**Engineering Write-Up: Architectural Tradeoffs & OWASP Top 10 Review**](./docs/WRITEUP.md)
+- [**Engineering Write-Up: Architectural Tradeoffs & Known Limitations**](./docs/WRITEUP.md)
 - [**Oil Supply Integration & 3–5 Minute Demo Video Guide**](./docs/DEMO_VIDEO_GUIDE.md)
