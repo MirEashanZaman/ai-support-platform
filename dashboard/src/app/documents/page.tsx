@@ -279,7 +279,7 @@ export default function DocumentsPage() {
               cursor: 'pointer',
             }}
           >
-            Upload &amp; Index in pgvector
+            Upload &amp; Index Document
           </button>
           {statusMessage && (
             <div style={{ fontSize: 13, color: '#0284c7', fontWeight: 500 }}>
@@ -341,7 +341,7 @@ export default function DocumentsPage() {
                     cursor: 'pointer',
                   }}
                 >
-                  Delete Document &amp; Embeddings
+                  Delete Document
                 </button>
               </div>
             ))}
