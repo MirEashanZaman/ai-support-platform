@@ -1,5 +1,6 @@
 {
-  "generatedAt": "2026-11-16T06:31:17.399Z",
+  "generatedAt": "2026-11-19T11:19:31.430Z",
+  "evalMode": "offline_deterministic_ci_retriever (104 self-written benchmark questions)",
   "totalQuestions": 104,
   "metrics": {
     "answerAccuracyPercent": 95.3,
@@ -9,6 +10,7 @@
     "unanswerableEscalationRatePercent": 100,
     "targetEscalationPercent": 90,
     "medianFirstResponseTimeMs": 0.08,
+    "p95FirstResponseTimeMs": 0.31,
     "targetMaxResponseTimeMs": 3000
   },
   "passedAllTargets": true,
@@ -38,6 +40,35 @@
       "escalationRatePercent": 100,
       "wrongHallucinations": 0,
       "hallucinationRatePercent": 0
+    }
+  ],
+  "missedQuestions": [
+    {
+      "tenantKey": "oil-supply",
+      "id": "oil-q25",
+      "category": "answerable",
+      "question": "Which days of the week is the depot open for standard operations?",
+      "outcome": "over_escalated",
+      "confidence": 0.25,
+      "reason": "low_confidence_escalation"
+    },
+    {
+      "tenantKey": "city-clinic",
+      "id": "clinic-q24",
+      "category": "answerable",
+      "question": "Can I pay at City Clinic with Nagad?",
+      "outcome": "over_escalated",
+      "confidence": 0.197,
+      "reason": "low_confidence_escalation"
+    },
+    {
+      "tenantKey": "city-clinic",
+      "id": "clinic-q26",
+      "category": "answerable",
+      "question": "until what time in the evening are outpatient consultations open?",
+      "outcome": "over_escalated",
+      "confidence": 0.163,
+      "reason": "low_confidence_escalation"
     }
   ]
 }
