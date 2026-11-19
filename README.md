@@ -2,6 +2,8 @@
 
 **Live Widget Demo:** [`http://localhost:4000/widget-demo`](http://localhost:4000/widget-demo) ([`widget/demo.html`](./widget/demo.html)) · **Dashboard:** [`http://localhost:3000`](http://localhost:3000) · **OpenAPI Docs:** [`http://localhost:4000/api-docs`](http://localhost:4000/api-docs) · **3–5 Min Video Script & Guide:** [`docs/DEMO_VIDEO_GUIDE.md`](./docs/DEMO_VIDEO_GUIDE.md)
 
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/MirEashanZaman/ai-support-platform) [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/MirEashanZaman/ai-support-platform)
+
 **A production-style multi-tenant B2B AI customer support platform.** Businesses sign up, upload their documents (`PDF`, `Markdown`, `TXT`, `URL`), and paste a 1-line **Shadow DOM** chat widget onto their website. The bot answers strictly from that tenant's documents with source citations, and hands the conversation to a live human support inbox whenever confidence is low or the customer asks for a person.
 
 - **`95.3%` (`61/64`) Answer Accuracy & `0/104` Hallucinations** on our 104 self-written benchmark questions (`3` conservative over-escalations; escalated all `40/40` unanswerable & prompt-injection test cases).
