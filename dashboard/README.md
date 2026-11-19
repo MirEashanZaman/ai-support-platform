@@ -1,6 +1,6 @@
 # Next.js 15 Admin & Support Agent Dashboard (`/dashboard`)
 
-> **Multi-Tenant Control Plane & Real-Time Support Agent Inbox**  
+> **Multi-Tenant Control Plane & Real-Time Support Agent Inbox**
 > Built with **Next.js 15 (App Router)**, **React 19**, **Tailwind CSS 4**, **Axios**, **TanStack Query**, **Socket.io Client**, and **Zod**.
 
 ---
@@ -39,12 +39,8 @@ The `/dashboard` application serves as the authenticated multi-tenant portal for
 ```bash
 cd dashboard
 
-# Install dependencies
 npm install
 
-# Run TypeScript type verification
 npx tsc --noEmit
 
-# Start the Next.js development server on http://localhost:3000
 npm run dev
-```
