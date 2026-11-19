@@ -1,55 +1,61 @@
-# AI Support Platform: Security Testing Plan
+# AI Support Platform: Security Testing Plan & CI Verification
 
-**By Mir Eashan Zaman · November 2026 · Version 1.0**
-
-Add a small subset of security testing types, not all of them. Many are for companies with security teams (red team, purple team, bug bounty), so they would be wasted effort for a student project. Pick what is automated and visible in the repo.
-
----
-
-## 1. Do These (Automated, in CI)
-
-| Type | What to use | Why |
-| :--- | :--- | :--- |
-| **SCA (dependencies)** | `npm audit` + Dependabot | Easiest win, takes minutes |
-| **SAST (source code)** | GitHub CodeQL or Semgrep | Finds code-level flaws on every push |
-| **Secret scanning** | Gitleaks (plus GitHub secret scanning) | Catches leaked API keys. Not in the original list, but it matters a lot with Claude and embedding keys |
-| **Container scan** | Trivy on the Docker images | Flags known flaws in base images |
-| **DAST (running app)** | OWASP ZAP baseline scan against the Docker Compose stack | Tests the live API from outside |
+**Author:** Mir Eashan Zaman · **Date:** November 2026 · **Version:** 1.0  
+**CI Workflow:** [`.github/workflows/security.yml`](../.github/workflows/security.yml) · **Detailed Report:** [`docs/THREAT_MODEL_AND_PENTEST.md`](./THREAT_MODEL_AND_PENTEST.md)
 
 ---
 
-## 2. Do These Lightly (Manual, One-Time)
+## Executive Approach
 
-- **Self pen test:** Spend a day attacking your own app using the **OWASP Top 10** and the **OWASP Top 10 for LLM Applications** (prompt injection, data leakage). Write down each finding, the fix, and the result. This report is great portfolio content.
-- **API security testing:** Run ZAP with your Swagger/OpenAPI file. Also write your own tests for tenant isolation and broken access control (tenant A reading tenant B's data). Automated tools miss this, and it is the biggest risk.
-- **Threat model and checklist:** One page in `/docs` using STRIDE, plus an OWASP ASVS checklist. This covers the "security audit" and "risk assessment" ideas without a real audit.
+Rather than attempting enterprise-only exercises that require dedicated security operations teams (such as live red/purple teaming or paid bug bounty programs), **AI Support Platform** focuses on **automated, reproducible security gates in CI** paired with a **targeted manual self pen-test** against the **OWASP Web/API Top 10** and **OWASP Top 10 for LLM Applications**.
 
 ---
 
-## 3. Skip These
+## 1. Automated Security Scans in CI (`.github/workflows/security.yml`)
 
-- **Red and purple teaming, BAS:** need a team and a live defense setup.
-- **Bug bounty:** needs real users and money.
-- **Social engineering tests:** not relevant to a code project.
-- **IAST:** heavy tooling with little extra benefit here.
-- **Mobile testing (MAST):** no mobile app is shipping for this project.
+Every push and pull request to `main` executes five automated security gates:
 
----
-
-## 4. One Important Rule
-
-Only scan and attack systems you own (your local stack or your own staging server). Never run ZAP or similar tools against someone else's website.
+| Security Testing Type | Tooling Configured | Purpose & Risk Mitigated | CI Configuration Reference |
+| :--- | :--- | :--- | :--- |
+| **SCA (Software Composition Analysis)** | `npm audit --audit-level=high` + **GitHub Dependabot** | Detects known CVEs in third-party Node.js dependencies across `backend/` and `dashboard/`. | `.github/workflows/security.yml`, `.github/dependabot.yml` |
+| **SAST (Static Application Security Testing)** | **GitHub CodeQL** (`javascript-typescript`) | Performs semantic data-flow analysis on every push to catch injection, XSS, and logic flaws. | `.github/workflows/security.yml` (`sast-codeql` job) |
+| **Secret Scanning** | **Gitleaks** (`gitleaks/gitleaks-action@v2`) | Scans the full Git history for accidentally committed Anthropic Claude API keys, JWT secrets, or DB credentials. | `.github/workflows/security.yml`, `.gitleaks.toml` |
+| **Container Image Scanning** | **Aqua Trivy** (`aquasecurity/trivy-action`) | Scans the production multi-stage `backend/Dockerfile` (`node:22-alpine`) for OS and library vulnerabilities (`HIGH`, `CRITICAL`). | `.github/workflows/security.yml` (`container-trivy` job) |
+| **DAST (Dynamic Application Security Testing)** | **OWASP ZAP Baseline Scan** (`zaproxy/action-baseline`) | Boots the live Docker Compose stack and attacks the running API using the exported OpenAPI schema (`/api-docs-json`). | `.github/workflows/security.yml` (`dast-owasp-zap` job) |
 
 ---
 
-## 5. What to Say in the Write-Up
+## 2. Manual Security Testing & Verification Artifacts (Completed)
 
-> "Automated SAST, SCA, secret, container, and DAST scans run in CI on every push. A manual pen test against the OWASP Top 10 and LLM Top 10 found 6 issues, all fixed."
-
-It is short, true, and strong.
+1. **Self Penetration Test (OWASP Web Top 10 & OWASP LLM Top 10):**
+   - Conducted adversarial testing against the local stack targeting prompt injection, cross-tenant vector retrieval, XSS in uploaded HTML/chat, credential brute-forcing, and mid-ingestion database failures.
+   - Identified and remediated **6 findings**, each backed by automated Jest regression tests (documented in [`docs/THREAT_MODEL_AND_PENTEST.md`](./THREAT_MODEL_AND_PENTEST.md)).
+2. **API Access Control & Multi-Tenant Isolation Testing:**
+   - Automated tools cannot infer business-level tenant boundaries. We authored dedicated integration tests (`backend/test/tenant-isolation.spec.ts` and `backend/test/week1-auth-rls.spec.ts`) verifying that Tenant A cannot read, mutate, delete, or vector-search Tenant B's records under PostgreSQL `FORCE ROW LEVEL SECURITY`.
+3. **STRIDE Threat Model & OWASP ASVS v4.0 Checklist:**
+   - Published a one-page STRIDE risk assessment and OWASP ASVS v4.0 verification matrix in [`docs/THREAT_MODEL_AND_PENTEST.md`](./THREAT_MODEL_AND_PENTEST.md).
 
 ---
 
-## 6. Next Step
+## 3. Out-of-Scope Security Exercises (Intentionally Omitted)
 
-Write the GitHub Actions workflow with CodeQL, Gitleaks, Trivy, `npm audit`, and a ZAP baseline scan.
+| Omitted Testing Type | Rationale |
+| :--- | :--- |
+| **Red / Purple Teaming & BAS** | Requires a multi-person security operations center (SOC) and live production defense telemetry. |
+| **Public Bug Bounty Program** | Requires commercial production traffic and monetary triage budgets. |
+| **Social Engineering / Phishing Tests** | Targets organizational personnel rather than software architecture. |
+| **IAST (Interactive App Security Testing)** | High runtime agent overhead with minimal incremental value over CodeQL + OWASP ZAP + Jest integration suites. |
+| **MAST (Mobile Application Security Testing)** | v1 ships a responsive Shadow-DOM web widget and Next.js web portal rather than native iOS/Android binaries. |
+
+---
+
+## 4. Rules of Engagement
+
+> [!IMPORTANT]
+> **Authorized Targets Only:** All dynamic scanning (OWASP ZAP) and manual penetration testing must be executed exclusively against systems you own (`localhost` Docker Compose stack or your dedicated staging instance). Never run automated scanners against third-party websites.
+
+---
+
+## 5. Executive Security Summary Statement
+
+> *"Automated SAST (`CodeQL`), SCA (`npm audit` + `Dependabot`), secret scanning (`Gitleaks`), container scanning (`Trivy`), and DAST (`OWASP ZAP`) scans run in CI on every push. A manual penetration test against the OWASP Web Top 10 and OWASP LLM Top 10 identified 6 issues — all remediated and locked in with automated regression tests."*
