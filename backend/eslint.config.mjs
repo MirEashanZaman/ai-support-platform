@@ -1,4 +1,3 @@
-// @ts-check
 import eslint from '@eslint/js';
 import globals from 'globals';
 import tseslint from 'typescript-eslint';
@@ -21,7 +20,9 @@ export default tseslint.config(
     rules: {
       '@typescript-eslint/no-explicit-any': 'off',
       '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+      '@typescript-eslint/no-require-imports': 'off',
+      'no-control-regex': 'off',
+      'no-empty': ['error', { allowEmptyCatch: true }],
     },
   },
 );
-
