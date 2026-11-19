@@ -7,13 +7,6 @@ import {
   getStoredTenantInfo,
 } from '../../lib/api-client';
 
-/**
- * Document Management & Widget Embed Script Page (FR-2 & FR-6):
- * - Owner can upload PDF, TXT, Markdown files via file picker (max 10 MB), add web page URLs, or paste text
- * - Shows status for each document: Uploaded, Processing, Ready, Failed
- * - Deleting a document also deletes its pgvector embeddings
- * - Provides the 1-line <script> widget snippet
- */
 export default function DocumentsPage() {
   const [documents, setDocuments] = useState<DocumentItem[]>([]);
   const [tenantKey, setTenantKey] = useState<string>('oil-supply');
@@ -30,7 +23,7 @@ export default function DocumentsPage() {
       setDocuments(list);
       setTenantKey(getStoredTenantInfo().tenantKey);
     } catch {
-      // Keep local list when offline
+
     }
   }
 
@@ -100,7 +93,6 @@ export default function DocumentsPage() {
         Knowledge Base Documents &amp; Embeddable Widget
       </h1>
 
-      {/* One-Script-Tag Embed Box (FR-6) */}
       <section
         style={{
           background: '#0f172a',
@@ -126,7 +118,6 @@ export default function DocumentsPage() {
         </code>
       </section>
 
-      {/* Document Upload Form (FR-2: File Picker for PDF/TXT/MD max 10 MB + URL field + Text) */}
       <section
         style={{
           background: '#ffffff',
@@ -142,7 +133,7 @@ export default function DocumentsPage() {
           onSubmit={handleUpload}
           style={{ display: 'grid', gap: 12, maxWidth: 680 }}
         >
-          {/* File Picker for PDF, TXT, Markdown */}
+
           <div
             style={{
               padding: 12,
@@ -206,7 +197,6 @@ export default function DocumentsPage() {
             </select>
           </div>
 
-          {/* URL Field (always accessible or highlighted when URL is selected) */}
           <input
             type="url"
             value={sourceUrl}
@@ -259,7 +249,6 @@ export default function DocumentsPage() {
         </form>
       </section>
 
-      {/* Document Status List */}
       <section
         style={{
           background: '#ffffff',
