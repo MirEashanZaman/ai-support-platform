@@ -192,11 +192,44 @@ export class DocumentsService {
     return doc;
   }
 
-  async listDocuments(): Promise<DocumentEntity[]> {
+  async listDocuments(): Promise<Array<DocumentEntity & { chunkCount: number }>> {
     return this.rlsTransaction.runInCurrentTenant(async (manager) => {
-      return manager.getRepository(DocumentEntity).find({
+      const docRepo = manager.getRepository(DocumentEntity);
+      const chunkRepo = manager.getRepository(ChunkEntity);
+      const docs = await docRepo.find({
         order: { createdAt: 'DESC' },
       });
+      const enriched: Array<DocumentEntity & { chunkCount: number }> = [];
+      for (const doc of docs) {
+        const count =
+          typeof chunkRepo.count === 'function'
+            ? await chunkRepo.count({ where: { documentId: doc.id } })
+            : 0;
+        enriched.push({ ...doc, chunkCount: count });
+      }
+      return enriched;
+    });
+  }
+
+  async getDocumentChunks(
+    id: string,
+  ): Promise<Array<{ id: string; chunkIndex: number; content: string }>> {
+    return this.rlsTransaction.runInCurrentTenant(async (manager) => {
+      const docRepo = manager.getRepository(DocumentEntity);
+      const chunkRepo = manager.getRepository(ChunkEntity);
+      const doc = await docRepo.findOne({ where: { id } });
+      if (!doc) {
+        throw new NotFoundException('Document not found');
+      }
+      const chunks = await chunkRepo.find({
+        where: { documentId: doc.id },
+        order: { chunkIndex: 'ASC' },
+      });
+      return chunks.map((c) => ({
+        id: c.id,
+        chunkIndex: c.chunkIndex,
+        content: c.content,
+      }));
     });
   }
 
@@ -278,6 +311,12 @@ export class DocumentsController {
   @Roles(Role.OWNER, Role.AGENT, Role.VIEWER)
   async list() {
     return this.documentsService.listDocuments();
+  }
+
+  @Get(':id/chunks')
+  @Roles(Role.OWNER, Role.AGENT, Role.VIEWER)
+  async listChunks(@Param('id') id: string) {
+    return this.documentsService.getDocumentChunks(id);
   }
 
   @Delete(':id')
