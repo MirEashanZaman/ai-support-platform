@@ -24,9 +24,6 @@ export default function DashboardHomePage() {
   const [welcomeMessage, setWelcomeMessage] = useState(
     'Hi! Welcome to Oil Supply support. Ask me anything about our policies or FAQs!',
   );
-  const [scriptTag, setScriptTag] = useState(
-    '<script src="http://localhost:4000/widget.js" data-tenant-key="oil-supply" async></script>',
-  );
   const [configSavedMsg, setConfigSavedMsg] = useState<string | null>(null);
 
   const [team, setTeam] = useState<
@@ -50,9 +47,6 @@ export default function DashboardHomePage() {
             tenant.widgetConfig.welcomeMessage ||
               'Hi! How can we help you today?',
           );
-        }
-        if (tenant?.scriptTag) {
-          setScriptTag(tenant.scriptTag);
         }
         if (Array.isArray(members)) {
           setTeam(members);
@@ -586,9 +580,6 @@ export default function DashboardHomePage() {
                 border: '1px solid #cbd5e1',
               }}
             />
-            <div style={{ fontSize: 11, color: '#64748b', marginTop: 4 }}>
-              Embed Script: <code>{scriptTag}</code>
-            </div>
             <button
               type="submit"
               style={{
