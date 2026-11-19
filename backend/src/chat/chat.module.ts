@@ -1,21 +1,31 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   ForbiddenException,
   Get,
+  Header,
   Headers,
+  HttpCode,
   HttpException,
   HttpStatus,
   Injectable,
   Logger,
   Module,
   NotFoundException,
+  Optional,
   Param,
   Post,
   UseGuards,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { IsNotEmpty, IsString, MaxLength } from 'class-validator';
+import {
+  IsBoolean,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  MaxLength,
+} from 'class-validator';
 import { createHash } from 'crypto';
 import { Repository } from 'typeorm';
 import { Public } from '../common/decorators/public.decorator';
@@ -37,18 +47,31 @@ import { ConversationStateMachine } from '../handoff/state-machine/conversation-
 import { RedisService } from '../infra/redis/redis.module';
 import { ClaudeLlmAdapter } from './adapters/claude-llm.adapter';
 import { PgVectorStoreAdapter } from './adapters/vector-store.adapter';
+import { EscalationReason } from './chat.types';
+import { handoffMessage, wantsHuman } from './handoff-messages';
+import { createLlmProvider, LLM_PROVIDER } from './llm';
+import { PresenceService } from './presence.service';
 import { CircuitBreaker } from './resilience/circuit-breaker';
 
 export class SendChatMessageDto {
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
   @MaxLength(128)
-  customerSession: string;
+  customerSession?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(128)
+  sessionId?: string;
 
   @IsString()
   @IsNotEmpty()
   @MaxLength(2000)
   message: string;
+
+  @IsOptional()
+  @IsBoolean()
+  requestHuman?: boolean;
 }
 
 const UNHELPFUL_FEEDBACK_REGEX =
@@ -58,7 +81,7 @@ const UNHELPFUL_FEEDBACK_REGEX =
  * Facade Pattern (Tech Decisions Section 3 & PRD FR-4 / FR-5 / FR-8):
  * One simple ChatService hiding origin validation, monthly quota checks,
  * repeated-question Redis caching, RLS vector retrieval, prompt-injection checks,
- * Claude LLM prompting, Circuit Breaker resilience, and human handoff escalation.
+ * Claude LLM prompting, Circuit Breaker resilience, agent presence, and Bangla/English handoff escalation.
  */
 @Injectable()
 export class ChatService {
@@ -77,7 +100,8 @@ export class ChatService {
     private readonly vectorStore: PgVectorStoreAdapter,
     private readonly llmAdapter: ClaudeLlmAdapter,
     private readonly handoffGateway: HandoffGateway,
-    private readonly redisService?: RedisService,
+    @Optional() private readonly redisService?: RedisService,
+    @Optional() private readonly presenceService?: PresenceService,
   ) {}
 
   getCircuitBreaker(): CircuitBreaker {
@@ -156,6 +180,11 @@ export class ChatService {
     requestOrigin?: string,
   ) {
     const startTime = Date.now();
+    const resolvedSessionId = (dto.customerSession || dto.sessionId || '').trim();
+    if (!resolvedSessionId) {
+      throw new BadRequestException('customerSession or sessionId is required');
+    }
+
     const tenant = await this.tenantRepo.findOne({ where: { tenantKey } });
     if (!tenant) {
       throw new NotFoundException('Tenant workspace not found');
@@ -195,7 +224,7 @@ export class ChatService {
       }
 
       let conversation = await convRepo.findOne({
-        where: { customerSession: dto.customerSession },
+        where: { customerSession: resolvedSessionId },
         order: { createdAt: 'DESC' },
       });
 
@@ -203,7 +232,7 @@ export class ChatService {
         conversation = await convRepo.save(
           convRepo.create({
             tenantId: tenant.id,
-            customerSession: dto.customerSession,
+            customerSession: resolvedSessionId,
             status: ConversationStatus.BOT,
           }),
         );
@@ -247,13 +276,8 @@ export class ChatService {
         };
       }
 
-      // FR-5 Trigger 1: Explicit customer request for a human agent
-      const explicitHumanRequest =
-        /\b(talk\s+to\s+(a\s+)?human|human\s+agent|live\s+agent|real\s+person|speak\s+to\s+someone|representative)\b/i.test(
-          sanitizedMessage,
-        );
-
-      if (explicitHumanRequest) {
+      // FR-5 Trigger 1: Explicit customer request for a human agent (no false alarm on "shipping agents")
+      if (dto.requestHuman || wantsHuman(sanitizedMessage)) {
         await this.recordChatUsage(
           usageRepo,
           tenant.id,
@@ -261,12 +285,17 @@ export class ChatService {
           startTime,
           true,
         );
+        const localizedHandoff = await this.resolveHandoffText(
+          tenant.id,
+          'customer_requested_human',
+          sanitizedMessage,
+        );
         return this.escalateToHuman(
           tenant.id,
           conversation,
           convRepo,
           msgRepo,
-          "I'm connecting you with a human support agent right away.",
+          localizedHandoff,
           1.0,
           'customer_requested_human',
         );
@@ -348,12 +377,17 @@ export class ChatService {
           startTime,
           true,
         );
+        const localizedHandoff = await this.resolveHandoffText(
+          tenant.id,
+          'no_relevant_chunks',
+          sanitizedMessage,
+        );
         return this.escalateToHuman(
           tenant.id,
           conversation,
           convRepo,
           msgRepo,
-          "I do not know the answer from our current documents. Would you like me to connect you with a human support agent?",
+          localizedHandoff,
           0,
           'no_relevant_chunks',
         );
@@ -378,12 +412,20 @@ export class ChatService {
             startTime,
             true,
           );
+          const isBangla = /[\u0980-\u09FF]/.test(sanitizedMessage);
+          const escalationText = isBangla
+            ? await this.resolveHandoffText(
+                tenant.id,
+                'low_confidence',
+                sanitizedMessage,
+              )
+            : llmResult.answer;
           return this.escalateToHuman(
             tenant.id,
             conversation,
             convRepo,
             msgRepo,
-            llmResult.answer,
+            escalationText,
             llmResult.confidence,
             'low_confidence_or_policy_guard',
           );
@@ -454,12 +496,17 @@ export class ChatService {
           startTime,
           true,
         );
+        const localizedHandoff = await this.resolveHandoffText(
+          tenant.id,
+          'ai_circuit_breaker_fallback',
+          sanitizedMessage,
+        );
         return this.escalateToHuman(
           tenant.id,
           conversation,
           convRepo,
           msgRepo,
-          "Our AI assistant is temporarily busy, so I'm transferring your chat to a live human support agent.",
+          localizedHandoff,
           0,
           'ai_circuit_breaker_fallback',
         );
@@ -483,6 +530,17 @@ export class ChatService {
         `Origin '${requestOrigin}' is not in this tenant's allowed_origins list`,
       );
     }
+  }
+
+  private async resolveHandoffText(
+    tenantId: string,
+    reason: EscalationReason,
+    customerText: string,
+  ): Promise<string> {
+    const onlineCount = this.presenceService
+      ? await this.presenceService.onlineCount(tenantId).catch(() => 1)
+      : 1;
+    return handoffMessage(reason, onlineCount, customerText);
   }
 
   private buildQuestionCacheKey(tenantId: string, question: string): string {
@@ -529,6 +587,7 @@ export class ChatService {
       conversation.status,
       ConversationStatus.WAITING,
     );
+    conversation.escalationReason = reason;
     const savedConv = await convRepo.save(conversation);
 
     const escalationReply = await msgRepo.save(
@@ -539,6 +598,7 @@ export class ChatService {
         content: botMessage,
         citations: [],
         confidence,
+        reason,
       }),
     );
 
@@ -591,6 +651,8 @@ export class ChatController {
   @Public()
   @UseGuards(PublicChatRateLimitGuard)
   @Post(':tenantKey/messages')
+  @HttpCode(HttpStatus.OK)
+  @Header('Cache-Control', 'no-store')
   async sendMessage(
     @Param('tenantKey') tenantKey: string,
     @Body() dto: SendChatMessageDto,
@@ -606,9 +668,17 @@ export class ChatController {
   providers: [
     PgVectorStoreAdapter,
     ClaudeLlmAdapter,
+    PresenceService,
+    { provide: LLM_PROVIDER, useFactory: createLlmProvider },
     PublicChatRateLimitGuard,
     ChatService,
   ],
-  exports: [PgVectorStoreAdapter, ClaudeLlmAdapter, ChatService],
+  exports: [
+    PgVectorStoreAdapter,
+    ClaudeLlmAdapter,
+    PresenceService,
+    LLM_PROVIDER,
+    ChatService,
+  ],
 })
 export class ChatModule {}
