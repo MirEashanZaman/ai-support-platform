@@ -39,7 +39,7 @@ describe('Week 6 & Step 6 — 104-Question Evaluation Suite & Demo Tenants Seede
   });
 
   it('meets all PRD Section 13 Success Metrics across 104 benchmark questions (>=85% accuracy, <5% hallucination, >=90% escalation)', () => {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
+
     const { runAllEvaluations } = require(
       path.resolve(__dirname, '../../evals/run-evals.js'),
     );
