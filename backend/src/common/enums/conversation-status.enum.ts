@@ -4,4 +4,3 @@ export enum ConversationStatus {
   HUMAN = 'human',
   CLOSED = 'closed',
 }
-
