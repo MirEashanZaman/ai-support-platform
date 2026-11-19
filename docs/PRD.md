@@ -1,6 +1,6 @@
 # AI Support Platform: Setup Guide & Product Requirements Document (PRD)
 
-**Author:** Mir Eashan Zaman · **Date:** November 2026 · **Version:** 1.0  
+**Author:** Mir Eashan Zaman · **Date:** November 2026 · **Version:** 1.0
 **Status:** Implemented & Verified (`10/10` Jest Test Suites, `58/58` Tests, `104`-Question Eval Benchmark Passing)
 
 ---
@@ -13,15 +13,14 @@
 
 ```text
 ai-support-platform/
-├── backend/              # NestJS 11 API + RabbitMQ workers + Socket.io gateway
-├── dashboard/            # Next.js 15 admin and live support agent dashboard
-├── widget/               # Zero-dependency Shadow-DOM embeddable chat script
-├── shared/               # Shared Zod schemas, file size limits (10 MB), and status enums
-├── evals/                # 104-question AI evaluation datasets and scoring runner
-├── docs/                 # Architecture diagram, PRD, Tech Decisions, Security Plan, Write-Up
-├── docker-compose.yml    # Local PostgreSQL (pgvector:pg16), Redis 7, and RabbitMQ 3
-└── .github/workflows/    # Automated CI & Security pipelines
-```
+├── backend/
+├── dashboard/
+├── widget/
+├── shared/
+├── evals/
+├── docs/
+├── docker-compose.yml
+└── .github/workflows/
 
 ### Step 2: Provision Local Infrastructure Services
 Configure `docker-compose.yml` with three foundational services:
