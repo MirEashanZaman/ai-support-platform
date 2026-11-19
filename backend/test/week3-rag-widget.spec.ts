@@ -112,7 +112,6 @@ describe('Week 3 — RAG Chat (Adapter, Circuit Breaker, Facade) & Shadow-DOM Wi
       expect(attempts).toBe(2);
       expect(breaker.getState()).toBe(CircuitState.CLOSED);
 
-      // Cause 2 consecutive full failures to trip the circuit OPEN
       await expect(
         breaker.execute(async () => {
           throw new Error('Claude 503 Overload');
@@ -285,7 +284,7 @@ describe('Week 3 — RAG Chat (Adapter, Circuit Breaker, Facade) & Shadow-DOM Wi
 
   describe('FR-6 Embeddable Chat Widget (Shadow DOM & Responsive Styles)', () => {
     it('exports Shadow DOM reset (:host { all: initial }), custom colors, and mobile media queries', () => {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
+
       const widgetModule = require(
         path.resolve(__dirname, '../../widget/src/widget.js'),
       );
