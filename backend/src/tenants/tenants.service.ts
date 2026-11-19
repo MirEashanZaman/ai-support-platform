@@ -20,9 +20,10 @@ export class TenantsService {
     if (!tenant) {
       throw new NotFoundException('Tenant not found');
     }
+    const apiUrl = process.env.PUBLIC_API_URL || 'http://localhost:4000';
     return {
       ...tenant,
-      scriptTag: `<script src="https://cdn.aisupport.local/widget.js" data-tenant-key="${tenant.tenantKey}" async></script>`,
+      scriptTag: `<script src="${apiUrl}/widget.js" data-tenant-key="${tenant.tenantKey}" async></script>`,
     };
   }
 
