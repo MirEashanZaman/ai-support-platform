@@ -43,19 +43,17 @@ echo [4/4] Launching Next.js Dashboard on http://localhost:3000 ...
 start "AI Support Platform — Dashboard (Port 3000)" cmd /k "cd /d "%~dp0dashboard" && npm run dev"
 
 echo.
-echo Waiting 7 seconds for servers to initialize before opening browser tabs...
+echo Waiting 7 seconds for servers to initialize before opening the Dashboard...
 timeout /t 7 /nobreak >nul
 
 start "" "http://localhost:3000"
-start "" "http://localhost:4000/api-docs"
-start "" "%~dp0widget\demo.html"
 
 echo.
 echo ============================================================================
 echo   All services launched!
 echo   - Dashboard:    http://localhost:3000
+echo   - Widget Demo:  http://localhost:4000/widget-demo (or widget\demo.html)
 echo   - Swagger Docs: http://localhost:4000/api-docs
 echo   - Health Check: http://localhost:4000/health
-echo   - Widget Demo:  widget\demo.html
 echo ============================================================================
 pause
