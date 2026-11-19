@@ -6,7 +6,7 @@ import {
 import { PresenceService } from '../src/chat/presence.service';
 import { buildUserPrompt, parseAnswer } from '../src/chat/prompt';
 
-describe('Chat Prompt Escaping, JSON Answer Parsing, Presence & Bangla/English Handoff Suite', () => {
+describe('Chat Prompt Escaping, JSON Answer Parsing, Presence & Handoff Messages Suite', () => {
   describe('parseAnswer', () => {
     const valid = {
       answerable: true,
@@ -54,7 +54,7 @@ describe('Chat Prompt Escaping, JSON Answer Parsing, Presence & Bangla/English H
     });
   });
 
-  describe('handoff messages & Bangla localization', () => {
+  describe('handoff messages & online/offline agent awareness', () => {
     it('picks the right kind based on escalation reason and online agents', () => {
       expect(pickHandoffKind('low_confidence', 2)).toBe('connecting');
       expect(pickHandoffKind('low_similarity', 0)).toBe('offline');
@@ -62,12 +62,12 @@ describe('Chat Prompt Escaping, JSON Answer Parsing, Presence & Bangla/English H
       expect(pickHandoffKind('customer_request', 0)).toBe('requested_offline');
     });
 
-    it('replies in Bangla when the customer wrote Bangla', () => {
-      expect(
-        handoffMessage('low_confidence', 1, 'ডেলিভারি কতদিন লাগে?'),
-      ).toMatch(/[\u0980-\u09FF]/);
-      expect(handoffMessage('low_confidence', 1, 'How long?')).not.toMatch(
-        /[\u0980-\u09FF]/,
+    it('returns clear online and offline English handoff messages', () => {
+      expect(handoffMessage('low_confidence', 1)).toContain(
+        "connecting you with a team member",
+      );
+      expect(handoffMessage('low_confidence', 0)).toContain(
+        "our team is offline right now",
       );
     });
 
