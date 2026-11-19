@@ -63,7 +63,6 @@ export class AuthService {
       });
       const savedTenant = await tenantRepo.save(tenant);
 
-      // Activate RLS session context for the newly created tenant
       await manager.query(`SET LOCAL ROLE app_tenant_user;`);
       await manager.query(
         `SELECT set_config('app.current_tenant_id', $1, true);`,
@@ -105,7 +104,6 @@ export class AuthService {
   async login(dto: LoginDto): Promise<AuthTokensResult> {
     const normalizedEmail = dto.email.trim().toLowerCase();
 
-    // System lookup to resolve which tenant the user belongs to before activating RLS
     const matchedUser = await this.dataSource.transaction(async (manager) => {
       const qb = manager
         .getRepository(UserEntity)
@@ -196,7 +194,7 @@ export class AuthService {
           user.refreshTokenHash,
         );
         if (!isTokenValid) {
-          // Possible token reuse: revoke session immediately
+
           await userRepo.update({ id: user.id }, { refreshTokenHash: null });
           throw new UnauthorizedException('Invalid refresh token');
         }
@@ -277,4 +275,3 @@ export class AuthService {
     return `${slug || 'tenant'}-${suffix}`;
   }
 }
-
