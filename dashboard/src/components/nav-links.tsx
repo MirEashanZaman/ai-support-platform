@@ -4,12 +4,16 @@ import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
+const API_BASE_URL = (
+  process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'
+).replace(/\/+$/, '');
+
 const NAV_ITEMS = [
   { href: '/', label: 'Overview' },
   { href: '/documents', label: 'Documents & Widget' },
   { href: '/inbox', label: 'Live Agent Inbox' },
   { href: '/analytics', label: 'Analytics & Quotas' },
-  { href: 'http://localhost:4000/widget-demo', label: 'Customer Widget Demo' },
+  { href: `${API_BASE_URL}/widget-demo`, label: 'Customer Widget Demo' },
   { href: '/login', label: 'Sign In' },
 ];
 
