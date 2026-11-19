@@ -180,7 +180,6 @@ describe('Week 2 & Tech Decisions — Factory, Strategy, Saga, DLQ & Security Su
         rabbitMq,
       );
 
-      // Attempt 1 fails (empty text) -> re-queued as attempt 2
       const res1 = await saga.execute({
         tenantId: 'tenant-oil-1',
         documentId: 'doc-bad',
@@ -190,7 +189,6 @@ describe('Week 2 & Tech Decisions — Factory, Strategy, Saga, DLQ & Security Su
       });
       expect(res1.routedToDlq).toBe(false);
 
-      // Attempt 2 fails -> re-queued as attempt 3
       const res2 = await saga.execute({
         tenantId: 'tenant-oil-1',
         documentId: 'doc-bad',
@@ -200,7 +198,6 @@ describe('Week 2 & Tech Decisions — Factory, Strategy, Saga, DLQ & Security Su
       });
       expect(res2.routedToDlq).toBe(false);
 
-      // Attempt 3 fails -> routed to DLQ and marked Failed!
       const res3 = await saga.execute({
         tenantId: 'tenant-oil-1',
         documentId: 'doc-bad',
