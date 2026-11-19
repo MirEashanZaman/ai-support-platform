@@ -14,7 +14,6 @@ permissions:
   actions: read
 
 jobs:
-  # 1. SCA (Software Composition Analysis) — npm audit
   sca-npm-audit:
     name: SCA (npm audit)
     runs-on: ubuntu-latest
@@ -33,7 +32,6 @@ jobs:
         working-directory: ./backend
         run: npm audit --audit-level=critical || true
 
-  # 2. SAST (Static Application Security Testing) — GitHub CodeQL
   sast-codeql:
     name: SAST (GitHub CodeQL)
     runs-on: ubuntu-latest
@@ -49,7 +47,6 @@ jobs:
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3
 
-  # 3. Secret Scanning — Gitleaks
   secret-scan-gitleaks:
     name: Secret Scanning (Gitleaks)
     runs-on: ubuntu-latest
@@ -65,7 +62,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITLEAKS_CONFIG: .gitleaks.toml
 
-  # 4. Container Scan — Trivy on Backend Docker Image
   container-scan-trivy:
     name: Container Scan (Trivy)
     runs-on: ubuntu-latest
@@ -86,7 +82,6 @@ jobs:
           vuln-type: "os,library"
           severity: "CRITICAL,HIGH"
 
-  # 5. DAST (Dynamic Application Security Testing) — OWASP ZAP Baseline Scan
   dast-owasp-zap:
     name: DAST (OWASP ZAP Baseline Scan)
     runs-on: ubuntu-latest
