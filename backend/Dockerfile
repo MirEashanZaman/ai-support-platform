@@ -1,6 +1,3 @@
-# ============================================================================
-# AI Support Platform — Production Backend Dockerfile (Week 6 Cloud Deploy)
-# ============================================================================
 FROM node:22-alpine AS builder
 WORKDIR /app
 
