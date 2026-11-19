@@ -53,8 +53,17 @@ export const documentItemSchema = z.object({
   status: z.enum(['Uploaded', 'Processing', 'Ready', 'Failed']),
   sourceUrl: z.string().nullable().optional(),
   errorMessage: z.string().nullable().optional(),
+  chunkCount: z.number().optional(),
   createdAt: z.union([z.string(), z.date()]).transform((v) => String(v)),
 });
+
+export const documentChunkSchema = z.object({
+  id: z.string(),
+  chunkIndex: z.number(),
+  content: z.string(),
+});
+
+export type DocumentChunkItem = z.infer<typeof documentChunkSchema>;
 
 export const analyticsSummarySchema = z.object({
   totalChats: z.number(),
@@ -363,6 +372,12 @@ export const documentsApi = {
   async deleteDocument(id: string): Promise<void> {
     await ensureDemoSession();
     await apiClient.delete(`/documents/${id}`);
+  },
+
+  async listDocumentChunks(id: string): Promise<DocumentChunkItem[]> {
+    await ensureDemoSession();
+    const res = await apiClient.get(`/documents/${id}/chunks`);
+    return z.array(documentChunkSchema).parse(res.data);
   },
 };
 
