@@ -1,6 +1,6 @@
 # Automated AI Evaluation & Regression Benchmark Suite (`/evals`)
 
-> **104-Question Multi-Tenant RAG Quality, Escalation & Prompt-Injection Benchmark (`PRD Section 13 & Section 14`)**  
+> **104-Question Multi-Tenant RAG Quality, Escalation & Prompt-Injection Benchmark (`PRD Section 13 & Section 14`)**
 > Continuously validates answer accuracy, zero-hallucination guardrails, adversarial prompt-injection defenses, and response latency across two independent business domains.
 
 ---
@@ -38,9 +38,7 @@ The evaluation runner (`node evals/run-evals.js`) is executed in GitHub Actions 
 ## 3. Running the Evaluation Suite
 
 ```bash
-# From the repository root:
 node evals/run-evals.js
-```
 
 Running the command regenerates two machine- and human-readable artifacts:
 - [`evals/EVAL_REPORT.md`](./EVAL_REPORT.md) — Markdown executive scorecard.
