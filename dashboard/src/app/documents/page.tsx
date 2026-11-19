@@ -16,6 +16,19 @@ export default function DocumentsPage() {
   const [rawContent, setRawContent] = useState('');
   const [sourceUrl, setSourceUrl] = useState('');
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
+  const [copiedScript, setCopiedScript] = useState(false);
+
+  const embedScriptTag = `<script src="http://localhost:4000/widget.js" data-tenant-key="${tenantKey}" async></script>`;
+
+  async function handleCopyScriptTag() {
+    try {
+      await navigator.clipboard.writeText(embedScriptTag);
+      setCopiedScript(true);
+      setTimeout(() => setCopiedScript(false), 2000);
+    } catch {
+      setStatusMessage('Copied script tag to clipboard.');
+    }
+  }
 
   async function loadDocuments() {
     try {
@@ -38,7 +51,7 @@ export default function DocumentsPage() {
     try {
       if (selectedFile) {
         if (selectedFile.size > 10 * 1024 * 1024) {
-          setStatusMessage('Error: File exceeds the 10 MB limit (FR-2).');
+          setStatusMessage('Error: File exceeds the 10 MB limit.');
           return;
         }
         const uploaded = await documentsApi.uploadMultipartFile(
@@ -101,8 +114,35 @@ export default function DocumentsPage() {
           borderRadius: 12,
         }}
       >
-        <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 8 }}>
-          Embeddable Chat Widget Script Tag (FR-6 — Paste into your website)
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: 10,
+            marginBottom: 10,
+          }}
+        >
+          <div style={{ fontWeight: 600, fontSize: 14 }}>
+            Embeddable Chat Widget Script Tag — Paste into your website
+          </div>
+          <button
+            type="button"
+            onClick={handleCopyScriptTag}
+            style={{
+              background: copiedScript ? '#059669' : '#2563eb',
+              color: '#ffffff',
+              border: 'none',
+              borderRadius: 6,
+              padding: '6px 12px',
+              fontSize: 12,
+              fontWeight: 600,
+              cursor: 'pointer',
+            }}
+          >
+            {copiedScript ? 'Copied!' : 'Copy Script Tag'}
+          </button>
         </div>
         <code
           style={{
@@ -114,7 +154,7 @@ export default function DocumentsPage() {
             color: '#38bdf8',
           }}
         >
-          {`<script src="http://localhost:4000/widget.js" data-tenant-key="${tenantKey}" async></script>`}
+          {embedScriptTag}
         </code>
       </section>
 
@@ -127,7 +167,7 @@ export default function DocumentsPage() {
         }}
       >
         <h2 style={{ marginTop: 0, fontSize: 16 }}>
-          Upload Document File (PDF, TXT, Markdown max 10 MB) or Add Web Page URL (FR-2)
+          Upload Document File (PDF, TXT, Markdown max 10 MB) or Add Web Page URL
         </h2>
         <form
           onSubmit={handleUpload}
