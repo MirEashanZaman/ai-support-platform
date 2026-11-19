@@ -13,7 +13,7 @@ export class InitialMultiTenantRlsSchema1700000000000 implements MigrationInterf
   name = 'InitialMultiTenantRlsSchema1700000000000';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
-    // Note: gen_random_uuid() is built into PostgreSQL 13+ (including PG16) natively
+
     await queryRunner.query(`CREATE EXTENSION IF NOT EXISTS "vector";`);
 
     await queryRunner.query(`
@@ -125,7 +125,6 @@ export class InitialMultiTenantRlsSchema1700000000000 implements MigrationInterf
       CREATE INDEX IF NOT EXISTS "idx_usage_events_tenant_id" ON "usage_events" ("tenant_id");
     `);
 
-    // Create non-superuser role so RLS is strictly enforced on tenant queries
     await queryRunner.query(`
       DO $$
       BEGIN
@@ -141,7 +140,6 @@ export class InitialMultiTenantRlsSchema1700000000000 implements MigrationInterf
       GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO app_tenant_user;
     `);
 
-    // Enable and FORCE Row-Level Security on every tenant-scoped table
     for (const table of TENANT_SCOPED_TABLES) {
       await queryRunner.query(
         `ALTER TABLE "${table}" ENABLE ROW LEVEL SECURITY;`,
@@ -172,4 +170,3 @@ export class InitialMultiTenantRlsSchema1700000000000 implements MigrationInterf
     await queryRunner.query(`DROP TABLE IF EXISTS "tenants" CASCADE;`);
   }
 }
-
