@@ -9,10 +9,6 @@ export interface EmbeddingProvider {
   embedBatch(texts: string[]): Promise<number[][]>;
 }
 
-/**
- * Deterministic 1536-dimensional unit-vector embedding generator for local dev and CI tests.
- * Produces identical normalized vectors for identical text and preserves token overlap similarity.
- */
 export class DeterministicMockEmbeddingProvider implements EmbeddingProvider {
   readonly name = 'mock';
   readonly dimensions = 1536;
@@ -50,7 +46,7 @@ export class EmbeddingsService {
   private readonly provider: EmbeddingProvider;
 
   constructor(private readonly configService: ConfigService) {
-    // Default to deterministic mock in dev/CI unless OpenAI or Voyage API keys are configured
+
     this.provider = new DeterministicMockEmbeddingProvider();
   }
 
@@ -77,4 +73,3 @@ export class EmbeddingsService {
   exports: [EmbeddingsService],
 })
 export class EmbeddingsModule {}
-
