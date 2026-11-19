@@ -39,6 +39,7 @@ The evaluation runner (`node evals/run-evals.js`) is executed in GitHub Actions 
 
 ```bash
 node evals/run-evals.js
+```
 
 Running the command regenerates two machine- and human-readable artifacts:
 - [`evals/EVAL_REPORT.md`](./EVAL_REPORT.md) — Markdown executive scorecard.
