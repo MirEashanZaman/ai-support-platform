@@ -14,4 +14,3 @@ export class SignupDto {
   @MaxLength(128)
   password: string;
 }
-
