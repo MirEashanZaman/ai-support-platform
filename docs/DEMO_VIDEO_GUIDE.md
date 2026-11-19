@@ -1,5 +1,6 @@
 # AI Support Platform — Oil Supply Production Integration & Demo Video Guide
 
+> **Watch the Demo Video on YouTube:** [https://youtu.be/4RMNgwlf0S0](https://youtu.be/4RMNgwlf0S0)  
 > **Step-by-Step Guide for Embedding the Shadow-DOM Widget into the Oil Supply & Delivery Management System and Recording the 3–5 Minute Walkthrough (`PRD Step 6 & Section 18`)**
 
 ---
