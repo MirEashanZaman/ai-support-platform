@@ -9,6 +9,7 @@ const NAV_ITEMS = [
   { href: '/documents', label: 'Documents & Widget' },
   { href: '/inbox', label: 'Live Agent Inbox' },
   { href: '/analytics', label: 'Analytics & Quotas' },
+  { href: 'http://localhost:4000/widget-demo', label: 'Customer Widget Demo' },
   { href: '/login', label: 'Sign In' },
 ];
 
