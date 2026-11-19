@@ -28,7 +28,7 @@ import { UsersController } from '../src/users/users.controller';
 describe('Security Testing Plan — Broken Access Control, Cross-Tenant IDOR & Token Replay Suite', () => {
   describe('Cross-Tenant IDOR Defense (Tenant A targeting Tenant B UUIDs)', () => {
     it('prevents Tenant A from reading, claiming, replying to, or closing Tenant B conversations', async () => {
-      // Simulate RLS database store where conv-clinic-99 belongs ONLY to tenant-clinic-B
+
       const rlsScopedStore = {
         runInCurrentTenant: jest.fn(async (cb: any) =>
           rlsScopedStore.runWithTenant('tenant-oil-A', cb),
@@ -43,7 +43,7 @@ describe('Security Testing Plan — Broken Access Control, Cross-Tenant IDOR & T
                 ) {
                   return { id: 'conv-clinic-99', tenantId: 'tenant-clinic-B' };
                 }
-                // RLS hides Tenant B's row when activeTenantId is tenant-oil-A
+
                 return null;
               }),
             }),
@@ -88,7 +88,7 @@ describe('Security Testing Plan — Broken Access Control, Cross-Tenant IDOR & T
         runInCurrentTenant: jest.fn(async (cb: any) => {
           const manager = {
             getRepository: () => ({
-              findOne: jest.fn(async () => null), // Hidden by RLS for Tenant A
+              findOne: jest.fn(async () => null),
             }),
           };
           return cb(manager);
@@ -135,7 +135,6 @@ describe('Security Testing Plan — Broken Access Control, Cross-Tenant IDOR & T
         }),
       } as unknown as ExecutionContext;
 
-      // Read actual @Roles metadata attached to the controller method
       const requiredRoles = Reflect.getMetadata(ROLES_KEY, handler) as
         | Role[]
         | undefined;
@@ -151,7 +150,7 @@ describe('Security Testing Plan — Broken Access Control, Cross-Tenant IDOR & T
     }
 
     it('blocks Viewer from all write/destructive actions and audit logs while allowing read-only endpoints', () => {
-      // Viewer allowed on read-only endpoints
+
       assertRoutePermission(DocumentsController, 'list', Role.VIEWER, true);
       assertRoutePermission(HandoffController, 'getQueue', Role.VIEWER, true);
       assertRoutePermission(
@@ -167,7 +166,6 @@ describe('Security Testing Plan — Broken Access Control, Cross-Tenant IDOR & T
         true,
       );
 
-      // Viewer blocked from Owner & Agent write endpoints
       assertRoutePermission(DocumentsController, 'upload', Role.VIEWER, false);
       assertRoutePermission(DocumentsController, 'remove', Role.VIEWER, false);
       assertRoutePermission(TenantsController, 'updateMe', Role.VIEWER, false);
@@ -240,7 +238,6 @@ describe('Security Testing Plan — Broken Access Control, Cross-Tenant IDOR & T
         configService,
       );
 
-      // Attacker presents an older, already-rotated JWT refresh token
       const replayedOldToken = await jwtService.signAsync(
         {
           sub: 'user-owner-1',
@@ -255,7 +252,6 @@ describe('Security Testing Plan — Broken Access Control, Cross-Tenant IDOR & T
         UnauthorizedException,
       );
 
-      // Verify that token reuse triggered immediate session revocation in DB
       expect(revokeSpy).toHaveBeenCalledWith(
         { id: 'user-owner-1' },
         { refreshTokenHash: null },
