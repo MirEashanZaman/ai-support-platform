@@ -36,10 +36,6 @@ export function handoffMessage(
   return MESSAGES[pickHandoffKind(reason, agentsOnline)];
 }
 
-/**
- * Narrow on purpose: "Do you work with shipping agents?" must NOT trigger a handoff.
- * The widget's "Talk to human" button (`requestHuman: true`) is the primary path.
- */
 export function wantsHuman(text: string): boolean {
   return /\b(talk|speak|chat|connect)\b.{0,25}\b(human|person|agent|someone|representative)\b|\b(real person|human agent|live agent)\b/i.test(
     text,
