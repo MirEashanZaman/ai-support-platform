@@ -77,12 +77,6 @@ export class SendChatMessageDto {
 const UNHELPFUL_FEEDBACK_REGEX =
   /\b(not\s+helpful|didn'?t\s+help|does\s*n'?t\s+help|wrong\s+answer|still\s+not\s+working|useless|that'?s\s+wrong|repeating\s+yourself)\b/i;
 
-/**
- * Facade Pattern (Tech Decisions Section 3 & PRD FR-4 / FR-5 / FR-8):
- * One simple ChatService hiding origin validation, monthly quota checks,
- * repeated-question Redis caching, RLS vector retrieval, prompt-injection checks,
- * Claude LLM prompting, Circuit Breaker resilience, agent presence, and handoff escalation.
- */
 @Injectable()
 export class ChatService {
   private readonly logger = new Logger(ChatService.name);
@@ -108,11 +102,6 @@ export class ChatService {
     return this.llmCircuitBreaker;
   }
 
-  /**
-   * FR-6 & Tech Decisions Section 2 (Widget safety):
-   * Returns only non-sensitive public widget appearance settings after verifying
-   * the request Origin against the tenant's allowedOrigins list.
-   */
   async getPublicWidgetConfig(tenantKey: string, requestOrigin?: string) {
     const tenant = await this.tenantRepo.findOne({ where: { tenantKey } });
     if (!tenant) {
@@ -128,10 +117,6 @@ export class ChatService {
     };
   }
 
-  /**
-   * Public endpoint for the customer widget to fetch conversation status and real-time
-   * agent replies for the current customerSession.
-   */
   async getCustomerSessionMessages(
     tenantKey: string,
     customerSession: string,
@@ -209,7 +194,6 @@ export class ChatService {
       const msgRepo = manager.getRepository(MessageEntity);
       const usageRepo = manager.getRepository(UsageEventEntity);
 
-      // FR-8: Enforce per-tenant monthly message quota
       const usedThisMonth =
         typeof usageRepo.count === 'function'
           ? await usageRepo.count({
@@ -248,7 +232,6 @@ export class ChatService {
         }),
       );
 
-      // FR-5: The bot stays silent while an agent owns or is queued for the chat
       if (ConversationStateMachine.isBotMuted(conversation.status)) {
         await usageRepo.save(
           usageRepo.create({
@@ -276,7 +259,6 @@ export class ChatService {
         };
       }
 
-      // FR-5 Trigger 1: Explicit customer request for a human agent (no false alarm on "shipping agents")
       if (dto.requestHuman || wantsHuman(sanitizedMessage)) {
         await this.recordChatUsage(
           usageRepo,
@@ -300,7 +282,6 @@ export class ChatService {
         );
       }
 
-      // FR-5 Trigger 2: Repeated unhelpful answers
       if (UNHELPFUL_FEEDBACK_REGEX.test(sanitizedMessage)) {
         await this.recordChatUsage(
           usageRepo,
@@ -320,7 +301,6 @@ export class ChatService {
         );
       }
 
-      // PRD Section 16 (AI API costs): Check Redis cache for repeated questions per tenant
       const cacheKey = this.buildQuestionCacheKey(tenant.id, sanitizedMessage);
       const cachedRaw = await this.redisService?.get(cacheKey);
       if (cachedRaw) {
@@ -357,11 +337,10 @@ export class ChatService {
             reply: cachedBotReply,
           };
         } catch {
-          // Proceed to fresh retrieval if cache entry is malformed
+
         }
       }
 
-      // Stage 1 Retrieval via VectorStoreAdapter (RLS enforced)
       const retrievedChunks = await this.vectorStore.searchSimilarChunks(
         manager,
         sanitizedMessage,
@@ -391,7 +370,6 @@ export class ChatService {
         );
       }
 
-      // Stage 2 LLM Grounded Answer via ClaudeLlmAdapter + CircuitBreaker
       try {
         const llmResult = await this.llmCircuitBreaker.execute(() =>
           this.llmAdapter.generateGroundedAnswer({
@@ -401,7 +379,6 @@ export class ChatService {
           }),
         );
 
-        // FR-5 Trigger 3: Low confidence
         if (llmResult.shouldEscalate) {
           await this.recordChatUsage(
             usageRepo,
@@ -446,7 +423,6 @@ export class ChatService {
           }),
         );
 
-        // Cache high-confidence answer for repeated questions (TTL: 10 minutes)
         if (llmResult.confidence >= 0.6 && this.redisService) {
           await this.redisService.set(
             cacheKey,
@@ -475,7 +451,7 @@ export class ChatService {
           reply: botReply,
         };
       } catch (err) {
-        // Tech Decisions Section 3: Circuit breaker + retry -> fall back to human handoff
+
         this.logger.warn(
           `LLM CircuitBreaker fallback triggered for tenant ${tenant.tenantKey}: ${(err as Error).message}`,
         );
@@ -590,7 +566,6 @@ export class ChatService {
       }),
     );
 
-    // Observer / Events Pattern: Notify agents in real time when a chat is escalated
     this.handoffGateway.emitTenantEvent(tenantId, 'handoff:escalated', {
       conversationId: savedConv.id,
       customerSession: savedConv.customerSession,
