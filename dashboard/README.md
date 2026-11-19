@@ -21,7 +21,7 @@ The `/dashboard` application serves as the authenticated multi-tenant portal for
 | **`/`** | `src/app/page.tsx` | Public / All | Executive workspace overview, architecture summary, and quick navigation across portal workflows. |
 | **`/login`** | `src/app/login/page.tsx` | Public | Email & password sign-in issuing short-lived Bearer JWTs + `HttpOnly` refresh cookies (`FR-1`), plus one-click **`Try Demo: Oil Supply`** and **`Try Demo: City Clinic`** workspace switchers when `DEMO_MODE=true`. |
 | **`/signup`** | `src/app/signup/page.tsx` | Public | Self-service tenant onboarding that provisions a new PostgreSQL RLS-isolated business workspace and `Owner` account (`FR-1`). |
-| **`/documents`** | `src/app/documents/page.tsx` | `Owner` (write) / `Agent`, `Viewer` (read) | Multipart `.pdf`, `.txt`, and `.md` file uploader (10 MB limit — `FR-2`), web `URL` ingestion form, inline Markdown editor, live ingestion status tracking (`Uploaded` → `Processing` → `Ready` / `Failed` — `FR-3`), cascading `pgvector` deletion, and 1-line `<script>` widget embed generator (`FR-6`). |
+| **`/documents`** | `src/app/documents/page.tsx` | `Owner` (write) / `Agent`, `Viewer` (read) | Multipart `.pdf`, `.txt`, and `.md` file uploader (10 MB limit), web `URL` ingestion form, inline Markdown editor, live ingestion status tracking (`Uploaded` → `Processing` → `Ready` / `Failed` + indexed chunk count), **`View Indexed Text`** chunk preview drawer, inline **`Test Ask AI`** verification box, cascading `pgvector` deletion, and 1-click **`Copy Code`** `<script>` widget embed generator. |
 | **`/inbox`** | `src/app/inbox/page.tsx` | `Owner`, `Agent` (write) / `Viewer` (read) | Real-time Socket.io (`/realtime`) queue displaying `waiting` and `human` conversations (`FR-5`), full transcript viewer with bot citations and confidence badges, and **`Claim Chat`**, **`Send Reply`**, and **`Close Chat`** actions backed by `ConversationStateMachine`. |
 | **`/analytics`** | `src/app/analytics/page.tsx` | `Owner`, `Agent`, `Viewer` | Total conversations, Bot-Resolved vs. Escalated breakdown, Average Response Time (`ms` — `FR-7`), Monthly Message Quota consumption (`used / 1000` — `FR-8`), Top Customer Questions, and Unanswered Questions list. |
 
@@ -44,3 +44,4 @@ npm install
 npx tsc --noEmit
 
 npm run dev
+```
