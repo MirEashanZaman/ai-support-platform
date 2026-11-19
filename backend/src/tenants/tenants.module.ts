@@ -8,4 +8,3 @@ import { TenantsService } from './tenants.service';
   exports: [TenantsService],
 })
 export class TenantsModule {}
-
