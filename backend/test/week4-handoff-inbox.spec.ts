@@ -124,7 +124,6 @@ describe('Week 4 — Human Handoff, State Machine, Live Agent Inbox & Real-Time 
         mockGateway as any,
       );
 
-      // Customer says previous answer was not helpful -> escalates to WAITING
       const escalated = await chatService.handleCustomerMessage('oil-supply', {
         customerSession: 'sess-400',
         message: 'That answer was not helpful at all, it is still not working.',
@@ -134,7 +133,6 @@ describe('Week 4 — Human Handoff, State Machine, Live Agent Inbox & Real-Time 
       expect(escalated.escalationReason).toBe('repeated_unhelpful_answers');
       expect(tenantEvents[0].event).toBe('handoff:escalated');
 
-      // Customer sends another message while WAITING -> bot stays silent and forwards to agent inbox
       const followUp = await chatService.handleCustomerMessage('oil-supply', {
         customerSession: 'sess-400',
         message: 'Here is my order invoice number #9921.',
@@ -216,17 +214,14 @@ describe('Week 4 — Human Handoff, State Machine, Live Agent Inbox & Real-Time 
         role: Role.AGENT,
       };
 
-      // 1. Agent views queue with preview
       const queue = await handoffService.getQueue();
       expect(queue).toHaveLength(1);
       expect(queue[0].messageCount).toBe(1);
       expect(queue[0].lastMessagePreview).toContain('Need urgent help');
 
-      // 2. Agent fetches full conversation transcript so far
       const transcript = await handoffService.getConversationTranscript('conv-500');
       expect(transcript.messages).toHaveLength(1);
 
-      // 3. Agent claims chat -> status becomes HUMAN
       const claimed = await handoffService.claimConversation('conv-500', agentUser);
       expect(claimed.status).toBe(ConversationStatus.HUMAN);
       expect(claimed.claimedByUserId).toBe('agent-007');
@@ -241,7 +236,6 @@ describe('Week 4 — Human Handoff, State Machine, Live Agent Inbox & Real-Time 
         expect.anything(),
       );
 
-      // 4. Agent replies in real time
       const replyMsg = await handoffService.replyToConversation(
         'conv-500',
         agentUser,
@@ -250,11 +244,9 @@ describe('Week 4 — Human Handoff, State Machine, Live Agent Inbox & Real-Time 
       expect(replyMsg.sender).toBe(MessageSender.AGENT);
       expect(storedMessages).toHaveLength(2);
 
-      // 5. Agent closes chat -> status becomes CLOSED
       const closed = await handoffService.closeConversation('conv-500', agentUser);
       expect(closed.status).toBe(ConversationStatus.CLOSED);
 
-      // 6. State machine blocks replying to an already closed conversation
       await expect(
         handoffService.replyToConversation('conv-500', agentUser, {
           content: 'Trying to reply after close',
