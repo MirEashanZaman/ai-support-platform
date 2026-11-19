@@ -89,4 +89,3 @@ export class RedisService implements OnModuleDestroy {
   exports: [RedisService],
 })
 export class RedisModule {}
-
