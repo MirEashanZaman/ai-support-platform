@@ -8,9 +8,6 @@ const STORAGE_TOKEN_KEY = 'ai_support_access_token';
 const STORAGE_TENANT_ID_KEY = 'ai_support_tenant_id';
 const STORAGE_TENANT_KEY = 'ai_support_tenant_key';
 
-/**
- * Zod schemas for Dashboard API validation (Tech Decisions Section 1).
- */
 export const citationSchema = z.object({
   documentId: z.string(),
   documentName: z.string(),
@@ -117,7 +114,7 @@ export function setAccessToken(
         window.localStorage.setItem(STORAGE_TENANT_KEY, tenantKey);
       }
     } catch {
-      // Ignore storage errors in private browsing
+
     }
   }
 }
@@ -148,11 +145,6 @@ export function isDemoModeEnabled(): boolean {
   );
 }
 
-/**
- * Ensures the browser session has a valid JWT token.
- * Auto-login into the pre-seeded "Oil Supply" demo workspace ONLY runs when
- * `DEMO_MODE` is enabled and is strictly disabled in production deployments.
- */
 export async function ensureDemoSession(): Promise<{
   accessToken: string | null;
   tenantId: string | null;
@@ -197,16 +189,12 @@ export async function ensureDemoSession(): Promise<{
       };
     }
   } catch {
-    // Keep null if backend is still starting up
+
   }
 
   return { accessToken: null, tenantId: null, tenantKey: 'oil-supply' };
 }
 
-/**
- * Axios instance with Bearer access token injection and automatic /auth/refresh
- * + demo session recovery interceptor on 401 responses (Tech Decisions Section 1).
- */
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
   withCredentials: true,
@@ -252,7 +240,7 @@ apiClient.interceptors.response.use(
           return apiClient(originalRequest);
         }
       } catch {
-        // Fallback: auto-authenticate with the seeded Oil Supply demo account
+
         setAccessToken(null);
         const demo = await ensureDemoSession();
         if (demo.accessToken) {
