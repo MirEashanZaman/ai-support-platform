@@ -1,9 +1,3 @@
-/**
- * PII Care & Prompt-Injection Defense Utilities (Tech Decisions Section 2).
- * - Masks emails and phone numbers before writing to application logs.
- * - Isolates untrusted retrieved document text and customer queries inside delimited data blocks.
- */
-
 const EMAIL_REGEX = /\b([a-zA-Z0-9._%+-])[a-zA-Z0-9._%+-]*@([a-zA-Z0-9.-]+\.[a-zA-Z]{2,})\b/g;
 const PHONE_REGEX = /(\+?\d{1,3}[\s-]?)?\(?\d{3,4}\)?[\s-]?\d{3}[\s-]?\d{3,4}/g;
 
@@ -18,10 +12,6 @@ export function maskPii(input: string): string {
     });
 }
 
-/**
- * Wraps retrieved document chunks as strictly untrusted data so instructions inside
- * uploaded documents cannot override system rules (FR-4 & Section 12 AI Behavior Rules).
- */
 export function wrapUntrustedDocumentContext(
   chunks: Array<{ chunkId: string; documentName: string; content: string }>,
 ): string {
