@@ -1,10 +1,3 @@
-/**
- * AI Support Platform — Embeddable Chat Widget (FR-6)
- * - Single <script src=".../widget.js" data-tenant-key="..." data-api-url="..."></script> loader
- * - Shadow DOM encapsulation so host website CSS never collides with widget styles
- * - Plain `fetch` only (zero external runtime dependencies to keep bundle tiny)
- * - Displays grounded source citations, confidence badges, and "Ask for a human" escalation
- */
 (function () {
   'use strict';
 
@@ -320,7 +313,6 @@
       sendChatMessage('Please connect me with a human support agent.');
     });
 
-    // Fetch remote tenant widget customization (botName, primaryColor, welcomeMessage)
     if (typeof window.fetch === 'function') {
       window
         .fetch(
@@ -348,7 +340,7 @@
           }
         })
         .catch(function () {
-          // Keep default appearance when offline
+
         });
     }
 
