@@ -1,0 +1,16 @@
+{
+  "name": "AI Support Platform (Backend + Dashboard + Widget)",
+  "image": "mcr.microsoft.com/devcontainers/javascript-node:1-22-bookworm",
+  "postCreateCommand": "cp -n .env.example .env || true && cd backend && npm install && npm run build && cd ../dashboard && npm install",
+  "forwardPorts": [3000, 4000],
+  "portsAttributes": {
+    "3000": {
+      "label": "Next.js Admin & Agent Dashboard",
+      "onAutoForward": "openBrowser"
+    },
+    "4000": {
+      "label": "NestJS Backend API, Swagger & Customer Widget Demo",
+      "onAutoForward": "silent"
+    }
+  }
+}
