@@ -3,4 +3,3 @@ export enum MessageSender {
   BOT = 'bot',
   AGENT = 'agent',
 }
-
