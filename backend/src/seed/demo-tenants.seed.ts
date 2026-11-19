@@ -40,11 +40,6 @@ export interface EvalDatasetFile {
   }>;
 }
 
-/**
- * Step 6 & PRD Section 14:
- * Seeds the two sample businesses ("Oil Supply" and "City Clinic") with their
- * official FAQ and policy documents so the platform is immediately ready for live demo.
- */
 export class DemoTenantsSeeder {
   static loadSampleDatasets(): EvalDatasetFile[] {
     const evalsDir = path.resolve(__dirname, '../../../evals/datasets');
@@ -168,8 +163,6 @@ export class DemoTenantsBootstrapService implements OnApplicationBootstrap {
           });
         }
 
-        // Seed sample conversations (1 escalated waiting chat + 1 bot-resolved chat) so
-        // the Live Agent Inbox (/inbox) and Analytics (/analytics) are populated immediately!
         await this.rlsTransaction.runWithTenant(tenant.id, async (manager) => {
           const convRepo = manager.getRepository(ConversationEntity);
           const msgRepo = manager.getRepository(MessageEntity);
