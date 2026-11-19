@@ -87,6 +87,7 @@ export class InitialMultiTenantRlsSchema1700000000000 implements MigrationInterf
         "status" varchar(32) NOT NULL DEFAULT 'bot',
         "customer_session" varchar(128) NOT NULL,
         "claimed_by_user_id" uuid REFERENCES "users"("id") ON DELETE SET NULL,
+        "escalation_reason" text,
         "created_at" timestamptz NOT NULL DEFAULT now(),
         "updated_at" timestamptz NOT NULL DEFAULT now(),
         CONSTRAINT "PK_conversations_id" PRIMARY KEY ("id")
@@ -104,6 +105,7 @@ export class InitialMultiTenantRlsSchema1700000000000 implements MigrationInterf
         "content" text NOT NULL,
         "citations" jsonb NOT NULL DEFAULT '[]'::jsonb,
         "confidence" double precision,
+        "reason" text,
         "created_at" timestamptz NOT NULL DEFAULT now(),
         CONSTRAINT "PK_messages_id" PRIMARY KEY ("id")
       );
