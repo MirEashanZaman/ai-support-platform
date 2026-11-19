@@ -17,7 +17,7 @@ export default function LiveAgentInboxPage() {
   const [messages, setMessages] = useState<ChatMessageItem[]>([]);
   const [replyText, setReplyText] = useState<string>('');
   const [statusBanner, setStatusBanner] = useState<string>(
-    'Connecting to real-time WebSocket inbox (/realtime)...',
+    'Connecting to Live Agent Inbox...',
   );
   const [validationError, setValidationError] = useState<string | null>(null);
   const [sending, setSending] = useState<boolean>(false);
@@ -40,7 +40,7 @@ export default function LiveAgentInboxPage() {
       return items;
     } catch {
       setStatusBanner(
-        'Waiting for Backend API on http://localhost:4000 ...',
+        'Waiting for Backend API connection...',
       );
       return [];
     }
