@@ -51,6 +51,9 @@ export class MessageEntity {
   @Column({ type: 'float', nullable: true })
   confidence: number | null;
 
+  @Column({ type: 'text', nullable: true })
+  reason?: string | null;
+
   @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   createdAt: Date;
 }
