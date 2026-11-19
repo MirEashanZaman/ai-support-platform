@@ -20,7 +20,6 @@ describe('PostgreSQL Row-Level Security (RLS) & pgvector Tenant Isolation Suite'
       extensions: { vector },
     });
 
-    // Execute the exact TypeORM migration SQL against real Postgres + pgvector
     const migration = new InitialMultiTenantRlsSchema1700000000000();
     const queryRunnerAdapter = {
       query: async (sql: string, params?: unknown[]) => {
@@ -35,7 +34,6 @@ describe('PostgreSQL Row-Level Security (RLS) & pgvector Tenant Isolation Suite'
 
     await migration.up(queryRunnerAdapter as any);
 
-    // Create two tenants: "Oil Supply" and "City Clinic"
     const t1 = await pg.query<{ id: string }>(
       `INSERT INTO "tenants" ("name", "tenant_key") VALUES ($1, $2) RETURNING "id"`,
       ['Oil Supply', 'oil-supply'],
@@ -176,7 +174,7 @@ describe('PostgreSQL Row-Level Security (RLS) & pgvector Tenant Isolation Suite'
   });
 
   it('prevents cross-tenant vector similarity leakage in pgvector RAG searches', async () => {
-    // Query using the EXACT text of the Clinic chunk, but inside Oil Supply's tenant context
+
     const clinicQueryVec = await embedder.embedText(
       'Clinic consultation appointments can be rescheduled 12 hours prior.',
     );
@@ -199,7 +197,7 @@ describe('PostgreSQL Row-Level Security (RLS) & pgvector Tenant Isolation Suite'
   });
 
   it('blocks a tenant from inserting, updating, or deleting another tenant row (WITH CHECK)', async () => {
-    // Oil Supply tries to insert a document spoofing Clinic's tenant_id
+
     await expect(
       runAsTenant(
         oilSupplyTenantId,
@@ -209,14 +207,12 @@ describe('PostgreSQL Row-Level Security (RLS) & pgvector Tenant Isolation Suite'
       ),
     ).rejects.toThrow(/row-level security policy/i);
 
-    // Oil Supply tries to delete Clinic's document by ID
     await runAsTenant(
       oilSupplyTenantId,
       `DELETE FROM "documents" WHERE id = $1`,
       [clinicDocId],
     );
 
-    // Verify Clinic's document is completely untouched
     const clinicDocsAfter = await runAsTenant<{ id: string }>(
       clinicTenantId,
       `SELECT id FROM "documents" WHERE id = $1`,
@@ -235,4 +231,3 @@ describe('PostgreSQL Row-Level Security (RLS) & pgvector Tenant Isolation Suite'
     expect(rows.rows).toHaveLength(0);
   });
 });
-
