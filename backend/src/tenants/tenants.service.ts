@@ -55,10 +55,6 @@ export class TenantsService {
     return this.tenantRepo.save(tenant);
   }
 
-  /**
-   * PRD Section 8 Privacy:
-   * "no customer data is shared between tenants. Tenant deletion removes all their data."
-   */
   async deleteCurrentTenant(): Promise<{ deleted: boolean; tenantId: string }> {
     const tenantId = this.tenantContext.requireTenantId();
     const tenant = await this.tenantRepo.findOne({ where: { id: tenantId } });
