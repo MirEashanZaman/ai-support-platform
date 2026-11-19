@@ -108,25 +108,41 @@ export default function DocumentsPage() {
 
       <section
         style={{
-          background: '#0f172a',
-          color: '#f8fafc',
+          background: '#ffffff',
           padding: 20,
           borderRadius: 12,
+          border: '1px solid #e2e8f0',
         }}
       >
+        <h2 style={{ margin: 0, fontSize: 16 }}>
+          Website Chat Widget Embed Code
+        </h2>
+        <p style={{ margin: '4px 0 12px', fontSize: 13, color: '#64748b' }}>
+          Paste this snippet before the closing <code>&lt;/body&gt;</code> tag of your website to enable the live support widget.
+        </p>
         <div
           style={{
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'space-between',
-            flexWrap: 'wrap',
             gap: 10,
-            marginBottom: 10,
+            maxWidth: 680,
           }}
         >
-          <div style={{ fontWeight: 600, fontSize: 14 }}>
-            Embeddable Chat Widget Script Tag — Paste into your website
-          </div>
+          <code
+            style={{
+              flex: 1,
+              background: '#f8fafc',
+              border: '1px solid #cbd5e1',
+              padding: '10px 12px',
+              borderRadius: 8,
+              fontSize: 13,
+              color: '#0f172a',
+              overflowX: 'auto',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {embedScriptTag}
+          </code>
           <button
             type="button"
             onClick={handleCopyScriptTag}
@@ -134,28 +150,17 @@ export default function DocumentsPage() {
               background: copiedScript ? '#059669' : '#2563eb',
               color: '#ffffff',
               border: 'none',
-              borderRadius: 6,
-              padding: '6px 12px',
-              fontSize: 12,
+              borderRadius: 8,
+              padding: '10px 16px',
+              fontSize: 13,
               fontWeight: 600,
               cursor: 'pointer',
+              whiteSpace: 'nowrap',
             }}
           >
-            {copiedScript ? 'Copied!' : 'Copy Script Tag'}
+            {copiedScript ? 'Copied!' : 'Copy Code'}
           </button>
         </div>
-        <code
-          style={{
-            display: 'block',
-            background: '#1e293b',
-            padding: 12,
-            borderRadius: 8,
-            fontSize: 13,
-            color: '#38bdf8',
-          }}
-        >
-          {embedScriptTag}
-        </code>
       </section>
 
       <section
