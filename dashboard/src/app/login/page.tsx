@@ -47,7 +47,7 @@ export default function LoginPage() {
       >
         <h1 style={{ marginTop: 0, fontSize: 20 }}>Sign In to Your Workspace</h1>
         <p style={{ color: '#64748b', fontSize: 13 }}>
-          Uses short-lived JWT Bearer tokens + HttpOnly SameSite=Strict refresh cookies.
+          Enter your workspace email and password to manage your support bot, knowledge base, and live agent inbox.
         </p>
         <form onSubmit={handleSubmit} style={{ display: 'grid', gap: 12 }}>
           <input
@@ -114,7 +114,7 @@ export default function LoginPage() {
           }}
         >
           <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8 }}>
-            Try Demo Workspaces (Enabled only when DEMO_MODE=true)
+            Quick Switch Demo Workspaces
           </div>
           <div style={{ display: 'flex', gap: 10 }}>
             <button
