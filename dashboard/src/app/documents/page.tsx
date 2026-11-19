@@ -125,7 +125,7 @@ export default function DocumentsPage() {
             display: 'flex',
             alignItems: 'center',
             gap: 10,
-            maxWidth: 680,
+            maxWidth: 860,
           }}
         >
           <code
@@ -133,12 +133,11 @@ export default function DocumentsPage() {
               flex: 1,
               background: '#f8fafc',
               border: '1px solid #cbd5e1',
-              padding: '10px 12px',
+              padding: '10px 14px',
               borderRadius: 8,
               fontSize: 13,
               color: '#0f172a',
-              overflowX: 'auto',
-              whiteSpace: 'nowrap',
+              wordBreak: 'break-all',
             }}
           >
             {embedScriptTag}
