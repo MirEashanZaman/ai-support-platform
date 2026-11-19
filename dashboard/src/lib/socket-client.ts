@@ -16,10 +16,6 @@ export interface InboxRealtimeHandlers {
   onClosed?: (conversation: unknown) => void;
 }
 
-/**
- * Connects to the NestJS WebSocket Gateway (/realtime) and subscribes to the
- * active tenant's live agent inbox room (`tenant:<tenantId>`).
- */
 export function connectTenantInboxSocket(
   tenantId: string,
   handlers: InboxRealtimeHandlers,
