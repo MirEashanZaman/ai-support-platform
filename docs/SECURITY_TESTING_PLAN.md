@@ -21,7 +21,7 @@ Every push and pull request to `main` executes five automated security gates:
 | **SAST (Static Application Security Testing)** | **GitHub CodeQL** (`javascript-typescript`) | Performs semantic data-flow analysis on every push to catch injection, XSS, and logic flaws. | `.github/workflows/security.yml` (`sast-codeql` job) |
 | **Secret Scanning** | **Gitleaks** (`gitleaks/gitleaks-action@v2`) | Scans the full Git history for accidentally committed Anthropic Claude API keys, JWT secrets, or DB credentials. | `.github/workflows/security.yml`, `.gitleaks.toml` |
 | **Container Image Scanning** | **Aqua Trivy** (`aquasecurity/trivy-action`) | Scans the production multi-stage `backend/Dockerfile` (`node:22-alpine`) for OS and library vulnerabilities (`HIGH`, `CRITICAL`). | `.github/workflows/security.yml` (`container-trivy` job) |
-| **DAST (Dynamic Application Security Testing)** | **OWASP ZAP Baseline Scan** (`zaproxy/action-baseline`) | Boots the live Docker Compose stack and attacks the running API using the exported OpenAPI schema (`/api-docs-json`). | `.github/workflows/security.yml` (`dast-owasp-zap` job) |
+| **DAST (Dynamic Application Security Testing)** | **OWASP ZAP Baseline Scan** (`zaproxy/action-baseline`) | Boots the live Docker Compose stack and performs a passive baseline scan against the running API and its exported OpenAPI schema (`/api-docs-json`). | `.github/workflows/security.yml` (`dast-owasp-zap` job) |
 
 ---
 
@@ -32,8 +32,8 @@ Every push and pull request to `main` executes five automated security gates:
    - Identified and remediated **6 findings**, each backed by automated Jest regression tests (documented in [`docs/THREAT_MODEL_AND_PENTEST.md`](./THREAT_MODEL_AND_PENTEST.md)).
 2. **API Access Control & Multi-Tenant Isolation Testing:**
    - Automated tools cannot infer business-level tenant boundaries. We authored dedicated integration tests (`backend/test/tenant-isolation.spec.ts` and `backend/test/week1-auth-rls.spec.ts`) verifying that Tenant A cannot read, mutate, delete, or vector-search Tenant B's records under PostgreSQL `FORCE ROW LEVEL SECURITY`.
-3. **STRIDE Threat Model & OWASP ASVS v4.0 Checklist:**
-   - Published a one-page STRIDE risk assessment and OWASP ASVS v4.0 verification matrix in [`docs/THREAT_MODEL_AND_PENTEST.md`](./THREAT_MODEL_AND_PENTEST.md).
+3. **STRIDE Threat Model & ASVS-Inspired Self-Assessment:**
+   - Published a one-page STRIDE risk assessment and an ASVS-inspired, self-assessed verification checklist (including Partial / Not-Yet-Implemented v1 items) in [`docs/THREAT_MODEL_AND_PENTEST.md`](./THREAT_MODEL_AND_PENTEST.md).
 
 ---
 
