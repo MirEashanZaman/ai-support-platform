@@ -307,7 +307,7 @@ export default function LiveAgentInboxPage() {
                   : 'Live Support Agent Transcript'}
               </strong>
               <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>
-                AI bot is strictly silent while status is waiting or human (FR-5)
+                AI bot is strictly silent while status is waiting or human
               </div>
             </div>
             {activeConversation && (
