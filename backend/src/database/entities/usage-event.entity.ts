@@ -31,4 +31,3 @@ export class UsageEventEntity {
   @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   createdAt: Date;
 }
-
