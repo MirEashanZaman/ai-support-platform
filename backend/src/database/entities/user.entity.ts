@@ -48,4 +48,3 @@ export class UserEntity {
   @UpdateDateColumn({ name: 'updated_at', type: 'timestamptz' })
   updatedAt: Date;
 }
-
