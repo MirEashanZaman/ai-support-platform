@@ -3,4 +3,3 @@ export enum Role {
   AGENT = 'Agent',
   VIEWER = 'Viewer',
 }
-
