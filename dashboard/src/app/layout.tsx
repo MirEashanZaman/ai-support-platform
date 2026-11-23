@@ -1,10 +1,12 @@
 import React from 'react';
+import Link from 'next/link';
 import NavLinks from '../components/nav-links';
+import './globals.css';
 
 export const metadata = {
-  title: 'AI Support Platform — Admin & Agent Dashboard',
+  title: 'AI Support Platform — Operations Console',
   description:
-    'Multi-tenant AI customer support platform with RAG document management, live agent inbox, and analytics.',
+    'Multi-tenant AI customer support console with document indexing, live agent handoff, and resolution analytics.',
 };
 
 export default function RootLayout({
@@ -14,33 +16,15 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body
-        style={{
-          margin: 0,
-          fontFamily:
-            '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-          backgroundColor: '#f8fafc',
-          color: '#0f172a',
-        }}
-      >
-        <header
-          style={{
-            backgroundColor: '#0f172a',
-            color: '#ffffff',
-            padding: '14px 28px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-          }}
-        >
-          <div style={{ fontWeight: 700, fontSize: 17 }}>
-            AI Support Platform
-          </div>
+      <body>
+        <header className="app-header">
+          <Link href="/" className="app-brand">
+            <span className="app-brand-mark">AS</span>
+            <span>AI Support Platform</span>
+          </Link>
           <NavLinks />
         </header>
-        <main style={{ maxWidth: 1200, margin: '0 auto', padding: 24 }}>
-          {children}
-        </main>
+        <main className="app-main">{children}</main>
       </body>
     </html>
   );
