@@ -43,163 +43,252 @@ export default function AnalyticsPage() {
     ),
   );
 
-  return (
-    <div style={{ display: 'grid', gap: 20 }}>
-      <h1 style={{ margin: 0, fontSize: 22 }}>
-        Analytics, Unanswered Questions &amp; Monthly Quotas
-      </h1>
+  const totalHandled = Math.max(
+    1,
+    summary.botResolvedChats + summary.escalatedChats,
+  );
+  const botShare = Math.round((summary.botResolvedChats / totalHandled) * 100);
+  const escalatedShare = 100 - botShare;
 
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-          gap: 16,
-        }}
-      >
-        <div
-          style={{
-            background: '#ffffff',
-            padding: 18,
-            borderRadius: 12,
-            border: '1px solid #e2e8f0',
-          }}
-        >
-          <div style={{ fontSize: 12, color: '#64748b' }}>Total Chats</div>
-          <div style={{ fontSize: 28, fontWeight: 700, marginTop: 6 }}>
+  return (
+    <div className="page-stack">
+      <div className="page-header">
+        <div>
+          <h1 className="page-title">Analytics and quotas</h1>
+          <p className="page-subtitle">
+            Monitor automated resolution rate, response latency, monthly message usage, and documentation gaps.
+          </p>
+        </div>
+        <div className="sig-meta tabular">
+          <span className="sig-dot sig-dot-ready" />
+          <span>Current billing period</span>
+        </div>
+      </div>
+
+      <div className="stats-row">
+        <div className="card" style={{ padding: 20 }}>
+          <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
+            Total conversations
+          </div>
+          <div
+            className="tabular"
+            style={{ fontSize: 32, fontWeight: 500, lineHeight: 1.1, marginTop: 10 }}
+          >
             {summary.totalChats}
           </div>
-        </div>
-
-        <div
-          style={{
-            background: '#ffffff',
-            padding: 18,
-            borderRadius: 12,
-            border: '1px solid #e2e8f0',
-          }}
-        >
-          <div style={{ fontSize: 12, color: '#64748b' }}>
-            Bot-Resolved vs. Escalated
-          </div>
-          <div style={{ fontSize: 22, fontWeight: 700, marginTop: 6 }}>
-            {summary.botResolvedChats} resolved / {summary.escalatedChats}{' '}
-            escalated ({summary.resolutionRate}%)
+          <div className="sig-meta tabular" style={{ marginTop: 8 }}>
+            All tenant sessions
           </div>
         </div>
 
-        <div
-          style={{
-            background: '#ffffff',
-            padding: 18,
-            borderRadius: 12,
-            border: '1px solid #e2e8f0',
-          }}
-        >
-          <div style={{ fontSize: 12, color: '#64748b' }}>
-            Avg Response Time
+        <div className="card" style={{ padding: 20 }}>
+          <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
+            Bot resolution rate
           </div>
-          <div style={{ fontSize: 28, fontWeight: 700, marginTop: 6 }}>
+          <div
+            className="tabular"
+            style={{
+              fontSize: 32,
+              fontWeight: 500,
+              lineHeight: 1.1,
+              marginTop: 10,
+              color: 'var(--accent)',
+            }}
+          >
+            {summary.resolutionRate}%
+          </div>
+          <div className="sig-meta tabular" style={{ marginTop: 8 }}>
+            {summary.botResolvedChats} resolved · {summary.escalatedChats} escalated
+          </div>
+        </div>
+
+        <div className="card" style={{ padding: 20 }}>
+          <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
+            Average response time
+          </div>
+          <div
+            className="tabular"
+            style={{ fontSize: 32, fontWeight: 500, lineHeight: 1.1, marginTop: 10 }}
+          >
             {summary.averageResponseTimeMs} ms
+          </div>
+          <div className="sig-meta tabular" style={{ marginTop: 8 }}>
+            2,800 ms timeout cap
+          </div>
+        </div>
+
+        <div className="card" style={{ padding: 20 }}>
+          <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
+            Monthly message quota
+          </div>
+          <div
+            className="tabular"
+            style={{ fontSize: 32, fontWeight: 500, lineHeight: 1.1, marginTop: 10 }}
+          >
+            {quotaPercent}%
+          </div>
+          <div className="sig-meta tabular" style={{ marginTop: 8 }}>
+            {summary.monthlyQuotaUsed} / {summary.monthlyQuotaLimit} messages
           </div>
         </div>
       </div>
 
-      <section
-        style={{
-          background: '#ffffff',
-          padding: 20,
-          borderRadius: 12,
-          border: '1px solid #e2e8f0',
-        }}
-      >
+      <section className="card">
         <div
           style={{
             display: 'flex',
             justifyContent: 'space-between',
-            fontWeight: 600,
-            fontSize: 14,
+            alignItems: 'baseline',
+            flexWrap: 'wrap',
+            gap: 8,
+            marginBottom: 12,
           }}
         >
-          <span>Per-Tenant Monthly Message Quota</span>
-          <span>
-            {summary.monthlyQuotaUsed} / {summary.monthlyQuotaLimit} messages (
-            {quotaPercent}%)
+          <h2 className="card-title">Resolution split and quota consumption</h2>
+          <span className="sig-meta tabular">
+            {summary.monthlyQuotaUsed} / {summary.monthlyQuotaLimit} monthly messages used
           </span>
         </div>
-        <div
-          style={{
-            height: 10,
-            background: '#e2e8f0',
-            borderRadius: 999,
-            marginTop: 10,
-            overflow: 'hidden',
-          }}
-        >
-          <div
-            style={{
-              width: `${quotaPercent}%`,
-              height: '100%',
-              background: quotaPercent > 90 ? '#dc2626' : '#2563eb',
-            }}
-          />
+
+        <div style={{ display: 'grid', gap: 16 }}>
+          <div>
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                fontSize: 12,
+                color: 'var(--text-secondary)',
+                marginBottom: 6,
+              }}
+            >
+              <span>Automated vs. human escalation</span>
+              <span className="mono tabular">
+                {botShare}% bot · {escalatedShare}% escalated
+              </span>
+            </div>
+            <div
+              style={{
+                height: 10,
+                background: 'var(--bg-raised)',
+                borderRadius: 6,
+                overflow: 'hidden',
+                display: 'flex',
+              }}
+            >
+              <div
+                style={{
+                  width: `${botShare}%`,
+                  background: 'var(--accent)',
+                }}
+              />
+              <div
+                style={{
+                  width: `${escalatedShare}%`,
+                  background: '#d4d4d8',
+                }}
+              />
+            </div>
+          </div>
+
+          <div>
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                fontSize: 12,
+                color: 'var(--text-secondary)',
+                marginBottom: 6,
+              }}
+            >
+              <span>Tenant quota utilization</span>
+              <span className="mono tabular">{quotaPercent}%</span>
+            </div>
+            <div
+              style={{
+                height: 10,
+                background: 'var(--bg-raised)',
+                borderRadius: 6,
+                overflow: 'hidden',
+              }}
+            >
+              <div
+                style={{
+                  width: `${quotaPercent}%`,
+                  height: '100%',
+                  background:
+                    quotaPercent > 90 ? 'var(--negative)' : 'var(--text-primary)',
+                }}
+              />
+            </div>
+          </div>
         </div>
       </section>
 
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: '1fr 1fr',
-          gap: 16,
-        }}
-      >
-        <section
-          style={{
-            background: '#ffffff',
-            padding: 20,
-            borderRadius: 12,
-            border: '1px solid #e2e8f0',
-          }}
-        >
-          <h2 style={{ marginTop: 0, fontSize: 16 }}>Top Customer Questions</h2>
+      <div className="split-2-asym">
+        <section className="card">
+          <h2 className="card-title">Top customer questions</h2>
+          <p className="card-desc">
+            Most frequent inquiries asked across your embedded widget and simulator.
+          </p>
           {summary.topQuestions.length === 0 ? (
-            <p style={{ color: '#64748b', fontSize: 13 }}>
+            <p style={{ color: 'var(--text-muted)', fontSize: 13, margin: 0 }}>
               No customer questions recorded yet.
             </p>
           ) : (
-            <ul style={{ margin: 0, paddingLeft: 18, display: 'grid', gap: 8 }}>
+            <div style={{ display: 'grid', gap: 8 }}>
               {summary.topQuestions.map((q, idx) => (
-                <li key={idx} style={{ fontSize: 14 }}>
-                  {q.question}{' '}
-                  <strong style={{ color: '#2563eb' }}>({q.count}×)</strong>
-                </li>
+                <div
+                  key={idx}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: 12,
+                    padding: '10px 12px',
+                    borderRadius: 8,
+                    background: 'var(--bg-page)',
+                    border: '1px solid var(--border-hairline)',
+                    fontSize: 13,
+                  }}
+                >
+                  <span>{q.question}</span>
+                  <span className="sig-tag tabular">{q.count}x</span>
+                </div>
               ))}
-            </ul>
+            </div>
           )}
         </section>
 
-        <section
-          style={{
-            background: '#ffffff',
-            padding: 20,
-            borderRadius: 12,
-            border: '1px solid #e2e8f0',
-          }}
-        >
-          <h2 style={{ marginTop: 0, fontSize: 16 }}>
-            Unanswered / Escalated Questions (Upload Docs for These)
-          </h2>
+        <section className="card">
+          <h2 className="card-title">Unanswered questions</h2>
+          <p className="card-desc">
+            Escalated inquiries with no matching document chunk. Upload docs covering these topics.
+          </p>
           {unanswered.length === 0 ? (
-            <p style={{ color: '#64748b', fontSize: 13 }}>
-              All recent questions were answered confidently by the bot!
+            <p style={{ color: 'var(--text-muted)', fontSize: 13, margin: 0 }}>
+              All recent questions matched existing workspace documentation.
             </p>
           ) : (
-            <ul style={{ margin: 0, paddingLeft: 18, display: 'grid', gap: 8 }}>
+            <div style={{ display: 'grid', gap: 8 }}>
               {unanswered.map((m) => (
-                <li key={m.id} style={{ fontSize: 14, color: '#b91c1c' }}>
-                  {m.content}
-                </li>
+                <div
+                  key={m.id}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 10,
+                    padding: '10px 12px',
+                    borderRadius: 8,
+                    background: 'var(--bg-page)',
+                    border: '1px solid var(--border-hairline)',
+                    fontSize: 13,
+                  }}
+                >
+                  <span className="sig-dot sig-dot-waiting" />
+                  <span>{m.content}</span>
+                </div>
               ))}
-            </ul>
+            </div>
           )}
         </section>
       </div>
