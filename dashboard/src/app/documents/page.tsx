@@ -49,7 +49,7 @@ export default function DocumentsPage() {
       setCopiedScript(true);
       setTimeout(() => setCopiedScript(false), 2000);
     } catch {
-      setStatusMessage('Copied script tag to clipboard.');
+      setStatusMessage('Copied embed script to clipboard');
     }
   }
 
@@ -74,16 +74,14 @@ export default function DocumentsPage() {
     try {
       if (selectedFile) {
         if (selectedFile.size > 10 * 1024 * 1024) {
-          setStatusMessage('Error: File exceeds the 10 MB limit.');
+          setStatusMessage('File exceeds the 10 MB limit');
           return;
         }
         const uploaded = await documentsApi.uploadMultipartFile(
           selectedFile,
           name.trim() || selectedFile.name,
         );
-        setStatusMessage(
-          `Uploaded & indexed "${uploaded.name}" (${uploaded.status})!`,
-        );
+        setStatusMessage(`Indexed "${uploaded.name}" (${uploaded.status})`);
         setSelectedFile(null);
         setName('');
         await loadDocuments();
@@ -93,7 +91,7 @@ export default function DocumentsPage() {
       const resolvedName =
         name.trim() || (type === 'url' ? sourceUrl.trim() : '');
       if (!resolvedName) {
-        setStatusMessage('Please select a file, enter a URL, or provide a document name.');
+        setStatusMessage('Select a file, enter a URL, or provide a document title');
         return;
       }
 
@@ -103,16 +101,14 @@ export default function DocumentsPage() {
         rawContent: rawContent.trim() || undefined,
         sourceUrl: sourceUrl.trim() || undefined,
       });
-      setStatusMessage(
-        `Added & indexed "${created.name}" (${created.status})!`,
-      );
+      setStatusMessage(`Indexed "${created.name}" (${created.status})`);
       setName('');
       setRawContent('');
       setSourceUrl('');
       await loadDocuments();
     } catch (err) {
       setStatusMessage(
-        (err as Error)?.message || 'Upload failed. Check file size (<10 MB) and format.',
+        (err as Error)?.message || 'Upload failed. Check file size and format.',
       );
     }
   }
@@ -122,7 +118,7 @@ export default function DocumentsPage() {
     if (expandedDocId === id) {
       setExpandedDocId(null);
     }
-    setStatusMessage('Deleted document and removed its vector embeddings.');
+    setStatusMessage('Removed document and its vector embeddings');
     await loadDocuments();
   }
 
@@ -155,9 +151,7 @@ export default function DocumentsPage() {
       const res = await workspaceApi.askAiBot(q, sessionKey);
       setTestResult({
         question: q,
-        answer:
-          res.reply?.content ||
-          'Escalated to human agent inbox.',
+        answer: res.reply?.content || 'Escalated to live agent inbox.',
         citations: res.reply?.citations || [],
         confidence: res.reply?.confidence ?? null,
         status: res.status,
@@ -165,7 +159,7 @@ export default function DocumentsPage() {
     } catch {
       setTestResult({
         question: q,
-        answer: 'Could not query AI bot. Please check your connection.',
+        answer: 'Could not query the assistant. Check your connection.',
         citations: [],
         confidence: null,
         status: 'bot',
@@ -176,42 +170,36 @@ export default function DocumentsPage() {
   }
 
   return (
-    <div style={{ display: 'grid', gap: 20 }}>
-      <h1 style={{ margin: 0, fontSize: 22 }}>
-        Knowledge Base Documents &amp; Embeddable Widget
-      </h1>
+    <div className="page-stack">
+      <div className="page-header">
+        <div>
+          <h1 className="page-title">Documents and widget</h1>
+          <p className="page-subtitle">
+            Upload files or URLs into your tenant knowledge base and copy your website embed snippet.
+          </p>
+        </div>
+        <div className="sig-meta tabular">
+          <span className="sig-dot sig-dot-accent" />
+          <span>Tenant: {tenantKey}</span>
+        </div>
+      </div>
 
-      <section
-        style={{
-          background: '#ffffff',
-          padding: 20,
-          borderRadius: 12,
-          border: '1px solid #e2e8f0',
-        }}
-      >
-        <h2 style={{ margin: 0, fontSize: 16 }}>
-          Website Chat Widget Embed Code
-        </h2>
-        <p style={{ margin: '4px 0 12px', fontSize: 13, color: '#64748b' }}>
-          Paste this snippet before the closing <code>&lt;/body&gt;</code> tag of your website to enable the live support widget.
+      <section className="card">
+        <h2 className="card-title">Website widget embed code</h2>
+        <p className="card-desc">
+          Paste this tag before the closing <code className="mono">&lt;/body&gt;</code> tag of your website.
         </p>
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 10,
-            maxWidth: 860,
-          }}
-        >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, maxWidth: 860 }}>
           <code
+            className="mono"
             style={{
               flex: 1,
-              background: '#f8fafc',
-              border: '1px solid #cbd5e1',
+              background: 'var(--bg-raised)',
+              border: '1px solid var(--border-hairline)',
               padding: '10px 14px',
               borderRadius: 8,
               fontSize: 13,
-              color: '#0f172a',
+              color: 'var(--text-primary)',
               wordBreak: 'break-all',
             }}
           >
@@ -220,171 +208,187 @@ export default function DocumentsPage() {
           <button
             type="button"
             onClick={handleCopyScriptTag}
-            style={{
-              background: copiedScript ? '#059669' : '#2563eb',
-              color: '#ffffff',
-              border: 'none',
-              borderRadius: 8,
-              padding: '10px 16px',
-              fontSize: 13,
-              fontWeight: 600,
-              cursor: 'pointer',
-              whiteSpace: 'nowrap',
-            }}
+            className={copiedScript ? 'btn btn-primary' : 'btn btn-accent'}
           >
-            {copiedScript ? 'Copied!' : 'Copy Code'}
+            {copiedScript ? 'Copied' : 'Copy code'}
           </button>
         </div>
       </section>
 
-      <section
-        style={{
-          background: '#ffffff',
-          padding: 20,
-          borderRadius: 12,
-          border: '1px solid #e2e8f0',
-        }}
-      >
-        <h2 style={{ marginTop: 0, fontSize: 16 }}>
-          Upload Document File (PDF, TXT, Markdown max 10 MB) or Add Web Page URL
-        </h2>
-        <form
-          onSubmit={handleUpload}
-          style={{ display: 'grid', gap: 12, maxWidth: 680 }}
-        >
-
-          <div
-            style={{
-              padding: 12,
-              borderRadius: 8,
-              border: '1px dashed #94a3b8',
-              background: '#f8fafc',
-            }}
-          >
-            <label
+      <div className="split-2-asym">
+        <section className="card">
+          <h2 className="card-title">Add knowledge document</h2>
+          <p className="card-desc">
+            Upload a PDF, Markdown, or TXT file (up to 10 MB), add a web URL, or paste text directly.
+          </p>
+          <form onSubmit={handleUpload} style={{ display: 'grid', gap: 16 }}>
+            <div
               style={{
-                display: 'block',
-                fontSize: 13,
-                fontWeight: 600,
-                marginBottom: 6,
+                padding: 16,
+                borderRadius: 8,
+                border: '1px dashed var(--border-control)',
+                background: 'var(--bg-page)',
               }}
             >
-              1. Choose File (.pdf, .txt, .md — max 10 MB):
-            </label>
+              <label className="field-label" htmlFor="doc-file">
+                File upload (.pdf, .md, .txt)
+              </label>
+              <input
+                id="doc-file"
+                type="file"
+                accept=".pdf,.txt,.md,.markdown"
+                onChange={(e) => {
+                  const f = e.target.files?.[0] ?? null;
+                  setSelectedFile(f);
+                  if (f && !name) {
+                    setName(f.name);
+                  }
+                }}
+                style={{ fontSize: 13 }}
+              />
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 160px', gap: 12 }}>
+              <input
+                type="text"
+                className="input"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Document title"
+              />
+              <select
+                className="select"
+                value={type}
+                onChange={(e) =>
+                  setType(e.target.value as 'pdf' | 'txt' | 'md' | 'url')
+                }
+              >
+                <option value="pdf">PDF</option>
+                <option value="md">Markdown</option>
+                <option value="txt">Text</option>
+                <option value="url">Web URL</option>
+              </select>
+            </div>
+
             <input
-              type="file"
-              accept=".pdf,.txt,.md,.markdown"
+              type="url"
+              className="input"
+              value={sourceUrl}
               onChange={(e) => {
-                const f = e.target.files?.[0] ?? null;
-                setSelectedFile(f);
-                if (f && !name) {
-                  setName(f.name);
+                setSourceUrl(e.target.value);
+                if (e.target.value && type !== 'url') {
+                  setType('url');
                 }
               }}
-              style={{ fontSize: 13 }}
+              placeholder="Or enter a web page URL"
             />
-          </div>
 
-          <div style={{ display: 'flex', gap: 10 }}>
+            <textarea
+              rows={4}
+              className="textarea"
+              value={rawContent}
+              onChange={(e) => setRawContent(e.target.value)}
+              placeholder="Or paste Markdown or plain text content"
+            />
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <button type="submit" className="btn btn-primary">
+                Upload and index
+              </button>
+              {statusMessage && <span className="sig-meta">{statusMessage}</span>}
+            </div>
+          </form>
+        </section>
+
+        <section className="card">
+          <h2 className="card-title">Verify uploaded knowledge</h2>
+          <p className="card-desc">
+            Ask a question from your newly uploaded PDF or Markdown file to confirm retrieval and citations.
+          </p>
+          <form onSubmit={handleAskTestQuestion} style={{ display: 'grid', gap: 12 }}>
             <input
               type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Document title (e.g., Oil_Supply_Policy.pdf or FAQ URL)"
-              style={{
-                flex: 1,
-                padding: '9px 12px',
-                borderRadius: 8,
-                border: '1px solid #cbd5e1',
-              }}
+              className="input"
+              value={testQuestion}
+              onChange={(e) => setTestQuestion(e.target.value)}
+              placeholder="Ask a question from your documents"
             />
-            <select
-              value={type}
-              onChange={(e) =>
-                setType(e.target.value as 'pdf' | 'txt' | 'md' | 'url')
-              }
+            <div>
+              <button
+                type="submit"
+                disabled={testLoading}
+                className="btn btn-accent"
+              >
+                {testLoading ? 'Searching' : 'Test retrieval'}
+              </button>
+            </div>
+          </form>
+
+          {testResult && (
+            <div
               style={{
-                padding: '9px 12px',
+                marginTop: 16,
+                background: 'var(--bg-page)',
+                border: '1px solid var(--border-hairline)',
                 borderRadius: 8,
-                border: '1px solid #cbd5e1',
+                padding: 16,
               }}
             >
-              <option value="pdf">PDF (.pdf)</option>
-              <option value="md">Markdown (.md)</option>
-              <option value="txt">Text (.txt)</option>
-              <option value="url">Web Page URL</option>
-            </select>
-          </div>
-
-          <input
-            type="url"
-            value={sourceUrl}
-            onChange={(e) => {
-              setSourceUrl(e.target.value);
-              if (e.target.value && type !== 'url') {
-                setType('url');
-              }
-            }}
-            placeholder="2. Or enter a Web Page URL (https://oil-supply-and-delivery-management.vercel.app/faq)"
-            style={{
-              padding: '9px 12px',
-              borderRadius: 8,
-              border: '1px solid #cbd5e1',
-            }}
-          />
-
-          <textarea
-            rows={4}
-            value={rawContent}
-            onChange={(e) => setRawContent(e.target.value)}
-            placeholder="3. Or paste Markdown / plain text document content directly..."
-            style={{
-              padding: '9px 12px',
-              borderRadius: 8,
-              border: '1px solid #cbd5e1',
-            }}
-          />
-
-          <button
-            type="submit"
-            style={{
-              justifySelf: 'start',
-              background: '#2563eb',
-              color: '#ffffff',
-              border: 'none',
-              borderRadius: 8,
-              padding: '10px 18px',
-              fontWeight: 600,
-              cursor: 'pointer',
-            }}
-          >
-            Upload &amp; Index Document
-          </button>
-          {statusMessage && (
-            <div style={{ fontSize: 13, color: '#0284c7', fontWeight: 500 }}>
-              {statusMessage}
+              <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
+                {testResult.question}
+              </div>
+              <div
+                style={{
+                  fontSize: 14,
+                  color: 'var(--text-primary)',
+                  marginTop: 8,
+                  lineHeight: 1.55,
+                }}
+              >
+                {testResult.answer}
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 12 }}>
+                {testResult.citations.map((c, idx) => (
+                  <span key={idx} className="sig-tag sig-tag-accent">
+                    {c.documentName}
+                  </span>
+                ))}
+                {testResult.status === 'waiting' ? (
+                  <span className="sig-tag sig-tag-warning">
+                    <span className="sig-dot sig-dot-waiting" />
+                    <span>Escalated to inbox</span>
+                  </span>
+                ) : (
+                  <span className="sig-tag sig-tag-positive tabular">
+                    <span className="sig-dot sig-dot-ready" />
+                    <span>{Math.round((testResult.confidence ?? 0.9) * 100)}% signal</span>
+                  </span>
+                )}
+              </div>
             </div>
           )}
-        </form>
-      </section>
+        </section>
+      </div>
 
-      <section
-        style={{
-          background: '#ffffff',
-          padding: 20,
-          borderRadius: 12,
-          border: '1px solid #e2e8f0',
-        }}
-      >
-        <h2 style={{ marginTop: 0, fontSize: 16 }}>
-          Uploaded Documents ({documents.length})
-        </h2>
+      <section className="card">
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginBottom: 16,
+          }}
+        >
+          <h2 className="card-title">Indexed documents</h2>
+          <span className="sig-meta tabular">{documents.length} total</span>
+        </div>
+
         {documents.length === 0 ? (
-          <p style={{ color: '#64748b', fontSize: 13 }}>
-            No documents uploaded yet.
+          <p style={{ color: 'var(--text-muted)', fontSize: 13, margin: 0 }}>
+            No documents indexed yet.
           </p>
         ) : (
-          <div style={{ display: 'grid', gap: 10 }}>
+          <div style={{ display: 'grid', gap: 8 }}>
             {documents.map((doc) => {
               const isExpanded = expandedDocId === doc.id;
               const docChunks = chunksByDocId[doc.id] || [];
@@ -395,8 +399,9 @@ export default function DocumentsPage() {
                   key={doc.id}
                   style={{
                     borderRadius: 8,
-                    border: '1px solid #e2e8f0',
+                    border: '1px solid var(--border-hairline)',
                     overflow: 'hidden',
+                    background: 'var(--bg-card)',
                   }}
                 >
                   <div
@@ -404,63 +409,42 @@ export default function DocumentsPage() {
                       display: 'flex',
                       justifyContent: 'space-between',
                       alignItems: 'center',
-                      padding: '12px 14px',
+                      padding: '12px 16px',
                       flexWrap: 'wrap',
-                      gap: 10,
+                      gap: 12,
                     }}
                   >
                     <div>
-                      <strong>{doc.name}</strong>{' '}
-                      <span style={{ fontSize: 12, color: '#64748b' }}>
-                        ({doc.type.toUpperCase()})
-                      </span>
-                      <div
-                        style={{
-                          fontSize: 12,
-                          color: '#059669',
-                          marginTop: 4,
-                        }}
-                      >
-                        Status: {doc.status}
-                        {typeof doc.chunkCount === 'number'
-                          ? ` · ${doc.chunkCount} indexed chunk${doc.chunkCount === 1 ? '' : 's'}`
-                          : ''}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span style={{ fontWeight: 500, fontSize: 14 }}>
+                          {doc.name}
+                        </span>
+                        <span className="sig-tag">{doc.type}</span>
+                      </div>
+                      <div className="sig-meta tabular" style={{ marginTop: 4 }}>
+                        <span className="sig-dot sig-dot-ready" />
+                        <span>
+                          {doc.status}
+                          {typeof doc.chunkCount === 'number'
+                            ? ` · ${doc.chunkCount} chunk${doc.chunkCount === 1 ? '' : 's'}`
+                            : ''}
+                        </span>
                       </div>
                     </div>
                     <div style={{ display: 'flex', gap: 8 }}>
                       <button
                         type="button"
-                        onClick={() => handleToggleChunks(doc.id)}
-                        style={{
-                          background: isExpanded ? '#e0f2fe' : '#f1f5f9',
-                          color: isExpanded ? '#0369a1' : '#334155',
-                          border: '1px solid #cbd5e1',
-                          borderRadius: 6,
-                          padding: '6px 12px',
-                          fontSize: 12,
-                          fontWeight: 600,
-                          cursor: 'pointer',
-                        }}
+                        onClick={() => void handleToggleChunks(doc.id)}
+                        className="btn btn-secondary btn-sm"
                       >
-                        {isExpanded
-                          ? 'Hide Indexed Text'
-                          : 'View Indexed Text'}
+                        {isExpanded ? 'Hide text' : 'View indexed text'}
                       </button>
                       <button
                         type="button"
-                        onClick={() => handleDelete(doc.id)}
-                        style={{
-                          background: '#fee2e2',
-                          color: '#b91c1c',
-                          border: '1px solid #fecaca',
-                          borderRadius: 6,
-                          padding: '6px 12px',
-                          fontSize: 12,
-                          fontWeight: 600,
-                          cursor: 'pointer',
-                        }}
+                        onClick={() => void handleDelete(doc.id)}
+                        className="btn btn-danger btn-sm"
                       >
-                        Delete Document
+                        Delete
                       </button>
                     </div>
                   </div>
@@ -468,28 +452,22 @@ export default function DocumentsPage() {
                   {isExpanded && (
                     <div
                       style={{
-                        background: '#f8fafc',
-                        borderTop: '1px solid #e2e8f0',
-                        padding: 14,
+                        background: 'var(--bg-page)',
+                        borderTop: '1px solid var(--border-hairline)',
+                        padding: 16,
                         display: 'grid',
                         gap: 8,
                       }}
                     >
-                      <div
-                        style={{
-                          fontSize: 12,
-                          fontWeight: 600,
-                          color: '#475569',
-                        }}
-                      >
-                        Extracted &amp; Indexed Knowledge Chunks ({docChunks.length}):
+                      <div className="sig-meta tabular">
+                        <span>Extracted chunks ({docChunks.length})</span>
                       </div>
                       {isLoadingChunks ? (
-                        <div style={{ fontSize: 12, color: '#64748b' }}>
-                          Loading extracted chunks...
+                        <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>
+                          Loading chunks
                         </div>
                       ) : docChunks.length === 0 ? (
-                        <div style={{ fontSize: 12, color: '#64748b' }}>
+                        <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>
                           No text chunks were extracted from this document.
                         </div>
                       ) : (
@@ -497,25 +475,25 @@ export default function DocumentsPage() {
                           <div
                             key={chunk.id}
                             style={{
-                              background: '#ffffff',
-                              border: '1px solid #cbd5e1',
+                              background: 'var(--bg-card)',
+                              border: '1px solid var(--border-hairline)',
                               borderRadius: 6,
-                              padding: '10px 12px',
+                              padding: 12,
                               fontSize: 13,
-                              lineHeight: 1.5,
-                              color: '#0f172a',
+                              lineHeight: 1.55,
+                              color: 'var(--text-primary)',
                               whiteSpace: 'pre-wrap',
                             }}
                           >
                             <div
+                              className="mono"
                               style={{
                                 fontSize: 11,
-                                fontWeight: 700,
-                                color: '#2563eb',
+                                color: 'var(--text-muted)',
                                 marginBottom: 4,
                               }}
                             >
-                              Chunk #{chunk.chunkIndex + 1}
+                              Chunk {chunk.chunkIndex + 1}
                             </div>
                             {chunk.content}
                           </div>
@@ -526,137 +504,6 @@ export default function DocumentsPage() {
                 </div>
               );
             })}
-          </div>
-        )}
-      </section>
-
-      <section
-        style={{
-          background: '#ffffff',
-          padding: 20,
-          borderRadius: 12,
-          border: '1px solid #e2e8f0',
-        }}
-      >
-        <h2 style={{ margin: 0, fontSize: 16 }}>
-          Test Ask AI About Your Uploaded Documents
-        </h2>
-        <p style={{ margin: '4px 0 12px', fontSize: 13, color: '#64748b' }}>
-          Ask any question from your uploaded PDFs, Markdown files, or URLs to verify the AI retrieves and cites the right document.
-        </p>
-        <form
-          onSubmit={handleAskTestQuestion}
-          style={{ display: 'flex', gap: 10, maxWidth: 860 }}
-        >
-          <input
-            type="text"
-            value={testQuestion}
-            onChange={(e) => setTestQuestion(e.target.value)}
-            placeholder="Ask a question from your uploaded PDF or document..."
-            style={{
-              flex: 1,
-              padding: '10px 12px',
-              borderRadius: 8,
-              border: '1px solid #cbd5e1',
-              fontSize: 14,
-            }}
-          />
-          <button
-            type="submit"
-            disabled={testLoading}
-            style={{
-              background: '#2563eb',
-              color: '#ffffff',
-              border: 'none',
-              borderRadius: 8,
-              padding: '10px 18px',
-              fontWeight: 600,
-              fontSize: 13,
-              cursor: 'pointer',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            {testLoading ? 'Searching...' : 'Test Ask AI'}
-          </button>
-        </form>
-
-        {testResult && (
-          <div
-            style={{
-              marginTop: 14,
-              background: '#f8fafc',
-              border: '1px solid #e2e8f0',
-              borderRadius: 8,
-              padding: 14,
-              maxWidth: 860,
-            }}
-          >
-            <div style={{ fontSize: 12, fontWeight: 600, color: '#475569' }}>
-              Question: &ldquo;{testResult.question}&rdquo;
-            </div>
-            <div
-              style={{
-                fontSize: 14,
-                color: '#0f172a',
-                marginTop: 6,
-                lineHeight: 1.5,
-              }}
-            >
-              <strong>AI Answer:</strong> {testResult.answer}
-            </div>
-            <div
-              style={{
-                display: 'flex',
-                flexWrap: 'wrap',
-                gap: 8,
-                marginTop: 8,
-                fontSize: 12,
-              }}
-            >
-              {testResult.citations.map((c, idx) => (
-                <span
-                  key={idx}
-                  style={{
-                    background: '#eff6ff',
-                    color: '#1d4ed8',
-                    border: '1px solid #bfdbfe',
-                    borderRadius: 6,
-                    padding: '2px 8px',
-                    fontWeight: 600,
-                  }}
-                >
-                  Source: {c.documentName}
-                </span>
-              ))}
-              {testResult.status === 'waiting' ? (
-                <span
-                  style={{
-                    background: '#fef3c7',
-                    color: '#b45309',
-                    border: '1px solid #fde68a',
-                    borderRadius: 6,
-                    padding: '2px 8px',
-                    fontWeight: 600,
-                  }}
-                >
-                  Escalated to Live Agent Inbox
-                </span>
-              ) : (
-                <span
-                  style={{
-                    background: '#f0fdf4',
-                    color: '#15803d',
-                    border: '1px solid #bbf7d0',
-                    borderRadius: 6,
-                    padding: '2px 8px',
-                    fontWeight: 600,
-                  }}
-                >
-                  Confidence:{' '}
-                  {Math.round((testResult.confidence ?? 0.9) * 100)}%
-                </span>
-              )}
-            </div>
           </div>
         )}
       </section>
