@@ -8,91 +8,91 @@ export default function SignupPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [status, setStatus] = useState<string | null>(null);
+  const [isError, setIsError] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    setIsError(false);
     try {
       const result = await authApi.signup({ businessName, email, password });
       setStatus(
-        `Created workspace "${result.tenant.name}" (tenantKey: ${result.tenant.tenantKey}) with Owner role!`,
+        `Created ${result.tenant.name} (tenantKey: ${result.tenant.tenantKey}) with Owner role`,
       );
     } catch {
+      setIsError(true);
       setStatus('Could not create workspace. Check inputs or try another email.');
     }
   }
 
   return (
     <div style={{ maxWidth: 440, margin: '40px auto' }}>
-      <section
-        style={{
-          background: '#ffffff',
-          padding: 28,
-          borderRadius: 12,
-          border: '1px solid #e2e8f0',
-        }}
-      >
-        <h1 style={{ marginTop: 0, fontSize: 20 }}>
-          Create Business Workspace
+      <section className="card">
+        <h1 className="page-title" style={{ fontSize: 22 }}>
+          Create business workspace
         </h1>
-        <p style={{ color: '#64748b', fontSize: 13 }}>
-          Provisions an isolated PostgreSQL RLS tenant and assigns you the Owner role.
+        <p className="card-desc">
+          Provisions an isolated PostgreSQL RLS tenant and assigns your account the Owner role.
         </p>
-        <form onSubmit={handleSubmit} style={{ display: 'grid', gap: 12 }}>
-          <input
-            type="text"
-            required
-            value={businessName}
-            onChange={(e) => setBusinessName(e.target.value)}
-            placeholder="Business Name (e.g., Oil Supply)"
-            style={{
-              padding: '10px 12px',
-              borderRadius: 8,
-              border: '1px solid #cbd5e1',
-            }}
-          />
-          <input
-            type="email"
-            required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="owner@oilsupply.com"
-            style={{
-              padding: '10px 12px',
-              borderRadius: 8,
-              border: '1px solid #cbd5e1',
-            }}
-          />
-          <input
-            type="password"
-            required
-            minLength={8}
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="Password (min 8 characters)"
-            style={{
-              padding: '10px 12px',
-              borderRadius: 8,
-              border: '1px solid #cbd5e1',
-            }}
-          />
-          <button
-            type="submit"
-            style={{
-              background: '#2563eb',
-              color: '#ffffff',
-              border: 'none',
-              borderRadius: 8,
-              padding: '10px 16px',
-              fontWeight: 600,
-              cursor: 'pointer',
-            }}
-          >
-            Create Tenant &amp; Go Live
+        <form onSubmit={handleSubmit} style={{ display: 'grid', gap: 16 }}>
+          <div>
+            <label className="field-label" htmlFor="signup-business">
+              Business name
+            </label>
+            <input
+              id="signup-business"
+              type="text"
+              className="input"
+              required
+              value={businessName}
+              onChange={(e) => setBusinessName(e.target.value)}
+              placeholder="Oil Supply"
+            />
+          </div>
+          <div>
+            <label className="field-label" htmlFor="signup-email">
+              Owner email
+            </label>
+            <input
+              id="signup-email"
+              type="email"
+              className="input"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="owner@oilsupply.com"
+            />
+          </div>
+          <div>
+            <label className="field-label" htmlFor="signup-password">
+              Password
+            </label>
+            <input
+              id="signup-password"
+              type="password"
+              className="input"
+              required
+              minLength={8}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Minimum 8 characters"
+            />
+          </div>
+          <button type="submit" className="btn btn-primary">
+            Create workspace
           </button>
         </form>
         {status && (
-          <div style={{ marginTop: 14, fontSize: 13, color: '#059669' }}>
-            {status}
+          <div
+            className="sig-meta"
+            style={{
+              marginTop: 16,
+              color: isError ? 'var(--negative)' : 'var(--positive)',
+            }}
+          >
+            <span
+              className={`sig-dot ${isError ? 'sig-dot-danger' : 'sig-dot-ready'}`}
+            />
+            <span>{status}</span>
           </div>
         )}
       </section>
