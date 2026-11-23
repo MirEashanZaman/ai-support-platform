@@ -10,50 +10,37 @@ const API_BASE_URL = (
 
 const NAV_ITEMS = [
   { href: '/', label: 'Overview' },
-  { href: '/documents', label: 'Documents & Widget' },
-  { href: '/inbox', label: 'Live Agent Inbox' },
-  { href: '/analytics', label: 'Analytics & Quotas' },
-  { href: `${API_BASE_URL}/widget-demo`, label: 'Customer Widget Demo' },
-  { href: '/login', label: 'Sign In' },
+  { href: '/documents', label: 'Documents' },
+  { href: '/inbox', label: 'Inbox' },
+  { href: '/analytics', label: 'Analytics' },
+  { href: `${API_BASE_URL}/widget-demo`, label: 'Customer portal' },
+  { href: '/login', label: 'Sign in' },
 ];
 
 export default function NavLinks() {
   const pathname = usePathname();
 
   return (
-    <nav style={{ display: 'flex', alignItems: 'center', gap: 20, fontSize: 14 }}>
+    <nav className="app-nav" aria-label="Primary navigation">
       {NAV_ITEMS.map((item) => {
         const isActive =
           item.href === '/'
             ? pathname === '/'
-            : pathname === item.href || pathname?.startsWith(item.href + '/');
+            : !item.href.startsWith('http') &&
+              (pathname === item.href || pathname?.startsWith(item.href + '/'));
 
         return (
           <Link
             key={item.href}
             href={item.href}
-            style={{
-              color: isActive ? '#38bdf8' : '#e2e8f0',
-              fontWeight: isActive ? 600 : 400,
-              textDecoration: 'none',
-            }}
+            className={`app-nav-link${isActive ? ' app-nav-link-active' : ''}`}
           >
             {item.label}
           </Link>
         );
       })}
-      <Link
-        href="/signup"
-        style={{
-          backgroundColor: '#2563eb',
-          color: '#ffffff',
-          padding: '6px 12px',
-          borderRadius: 6,
-          fontWeight: 600,
-          textDecoration: 'none',
-        }}
-      >
-        Create Workspace
+      <Link href="/signup" className="app-nav-cta">
+        New workspace
       </Link>
     </nav>
   );
