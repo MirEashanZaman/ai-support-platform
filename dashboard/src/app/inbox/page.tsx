@@ -17,7 +17,7 @@ export default function LiveAgentInboxPage() {
   const [messages, setMessages] = useState<ChatMessageItem[]>([]);
   const [replyText, setReplyText] = useState<string>('');
   const [statusBanner, setStatusBanner] = useState<string>(
-    'Connecting to Live Agent Inbox...',
+    'Connecting to live agent inbox',
   );
   const [validationError, setValidationError] = useState<string | null>(null);
   const [sending, setSending] = useState<boolean>(false);
@@ -35,13 +35,11 @@ export default function LiveAgentInboxPage() {
         setSelectedId(targetId);
       }
       setStatusBanner(
-        `Connected to Live Agent Inbox (Workspace: ${session.tenantKey}) — ${items.length} active escalated chat(s)`,
+        `Workspace ${session.tenantKey} · ${items.length} active escalated chat${items.length === 1 ? '' : 's'}`,
       );
       return items;
     } catch {
-      setStatusBanner(
-        'Waiting for Backend API connection...',
-      );
+      setStatusBanner('Waiting for backend API connection');
       return [];
     }
   }
@@ -72,7 +70,7 @@ export default function LiveAgentInboxPage() {
     const socket = connectTenantInboxSocket(tenantId, {
       onEscalated: (payload) => {
         setStatusBanner(
-          `New escalated chat (${payload.reason}) — Session ${payload.customerSession}`,
+          `New escalation (${payload.reason}) · session ${payload.customerSession}`,
         );
         void loadQueue(payload.conversationId);
       },
@@ -111,11 +109,11 @@ export default function LiveAgentInboxPage() {
     try {
       await handoffApi.claimChat(conversationId);
       setStatusBanner(
-        `Claimed conversation #${conversationId.slice(0, 8)}. AI bot is muted while you own this chat.`,
+        `Claimed #${conversationId.slice(0, 8)} · assistant muted while you own this chat`,
       );
       await loadQueue(conversationId);
     } catch {
-      setValidationError('Could not claim conversation. Please try again.');
+      setValidationError('Could not claim conversation');
     }
   }
 
@@ -152,14 +150,12 @@ export default function LiveAgentInboxPage() {
       setMessages((prev) =>
         prev.some((m) => m.id === created.id) ? prev : [...prev, created],
       );
-      setStatusBanner(
-        `Reply sent to conversation #${targetConversationId.slice(0, 8)}!`,
-      );
+      setStatusBanner(`Reply sent to #${targetConversationId.slice(0, 8)}`);
       await loadQueue(targetConversationId);
     } catch (err) {
       setValidationError(
         (err as Error)?.message ||
-          'Failed to send reply. Make sure the backend server is running on port 4000.',
+          'Failed to send reply. Verify the backend server is running.',
       );
     } finally {
       setSending(false);
@@ -169,123 +165,125 @@ export default function LiveAgentInboxPage() {
   async function handleClose(conversationId: string) {
     try {
       await handoffApi.closeChat(conversationId);
-      setStatusBanner(`Closed conversation #${conversationId.slice(0, 8)}.`);
+      setStatusBanner(`Closed conversation #${conversationId.slice(0, 8)}`);
       setSelectedId(null);
       await loadQueue(null);
     } catch {
-      setValidationError('Could not close conversation.');
+      setValidationError('Could not close conversation');
     }
   }
 
   const activeConversation = queue.find((q) => q.id === selectedId) ?? null;
 
   return (
-    <div style={{ display: 'grid', gap: 16 }}>
-      <div
-        style={{
-          background: '#eff6ff',
-          border: '1px solid #bfdbfe',
-          color: '#1e40af',
-          padding: '10px 16px',
-          borderRadius: 10,
-          fontSize: 13,
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-        }}
-      >
-        <span>{statusBanner}</span>
-        <span style={{ fontSize: 12, fontWeight: 600 }}>
-          {tenantId ? `Tenant ID: ${tenantId.slice(0, 8)}...` : 'Authenticating...'}
-        </span>
+    <div className="page-stack">
+      <div className="page-header">
+        <div>
+          <h1 className="page-title">Live agent inbox</h1>
+          <p className="page-subtitle">
+            Claim escalated customer threads and reply in real time while the AI assistant stays muted.
+          </p>
+        </div>
+        <div className="sig-meta tabular">
+          <span className="sig-dot sig-dot-ready" />
+          <span>{statusBanner}</span>
+        </div>
       </div>
 
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: '340px 1fr',
-          gap: 16,
-          minHeight: 560,
-        }}
-      >
-
+      <div className="split-inbox">
         <aside
+          className="card"
           style={{
-            background: '#ffffff',
-            border: '1px solid #e2e8f0',
-            borderRadius: 12,
             padding: 16,
             display: 'flex',
             flexDirection: 'column',
-            gap: 10,
+            gap: 8,
           }}
         >
-          <h2 style={{ margin: 0, fontSize: 16 }}>
-            Escalated Queue ({queue.length})
-          </h2>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '4px 4px 8px',
+              borderBottom: '1px solid var(--border-hairline)',
+            }}
+          >
+            <h2 className="card-title" style={{ fontSize: 14 }}>
+              Escalated queue
+            </h2>
+            <span className="sig-meta tabular">{queue.length}</span>
+          </div>
+
           {queue.length === 0 ? (
-            <p style={{ color: '#64748b', fontSize: 13 }}>
-              No chats currently waiting for human handoff. Type a reply on the
-              right to start an agent session, or click &ldquo;Talk to human&rdquo; in the
-              widget!
+            <p style={{ color: 'var(--text-muted)', fontSize: 13, padding: 4 }}>
+              No conversations waiting for handoff. Send a reply on the right or escalate a chat from the customer widget.
             </p>
           ) : (
-            queue.map((item) => (
-              <div
-                key={item.id}
-                onClick={() => setSelectedId(item.id)}
-                style={{
-                  padding: 12,
-                  borderRadius: 8,
-                  cursor: 'pointer',
-                  border:
-                    item.id === selectedId
-                      ? '2px solid #2563eb'
-                      : '1px solid #e2e8f0',
-                  background: item.id === selectedId ? '#f8fafc' : '#ffffff',
-                }}
-              >
-                <div
+            queue.map((item) => {
+              const isSelected = item.id === selectedId;
+              const isWaiting = item.status === 'waiting';
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => setSelectedId(item.id)}
                   style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    fontSize: 12,
-                    fontWeight: 600,
+                    textAlign: 'left',
+                    width: '100%',
+                    padding: 12,
+                    borderRadius: 8,
+                    cursor: 'pointer',
+                    border: isSelected
+                      ? '1px solid var(--accent)'
+                      : '1px solid var(--border-hairline)',
+                    background: isSelected ? 'var(--accent-soft)' : 'var(--bg-card)',
+                    transition: 'background-color 140ms var(--ease-out), border-color 140ms var(--ease-out)',
                   }}
                 >
-                  <span>Session: {item.customerSession}</span>
-                  <span
+                  <div
                     style={{
-                      textTransform: 'uppercase',
-                      color:
-                        item.status === 'waiting' ? '#d97706' : '#059669',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      gap: 8,
                     }}
                   >
-                    {item.status}
-                  </span>
-                </div>
-                <div
-                  style={{
-                    fontSize: 12,
-                    color: '#475569',
-                    marginTop: 6,
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  {item.lastMessagePreview || 'No messages yet'}
-                </div>
-              </div>
-            ))
+                    <span
+                      className="mono"
+                      style={{ fontSize: 12, color: 'var(--text-primary)', fontWeight: 500 }}
+                    >
+                      {item.customerSession}
+                    </span>
+                    <span className="sig-meta">
+                      <span
+                        className={`sig-dot ${isWaiting ? 'sig-dot-waiting' : 'sig-dot-ready'}`}
+                      />
+                      <span>{isWaiting ? 'Waiting' : 'Human'}</span>
+                    </span>
+                  </div>
+                  <div
+                    style={{
+                      fontSize: 13,
+                      color: 'var(--text-secondary)',
+                      marginTop: 6,
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {item.lastMessagePreview || 'No messages yet'}
+                  </div>
+                </button>
+              );
+            })
           )}
         </aside>
 
         <section
+          className="card"
           style={{
-            background: '#ffffff',
-            border: '1px solid #e2e8f0',
-            borderRadius: 12,
+            padding: 0,
             display: 'flex',
             flexDirection: 'column',
             overflow: 'hidden',
@@ -293,56 +291,42 @@ export default function LiveAgentInboxPage() {
         >
           <div
             style={{
-              padding: '14px 18px',
-              borderBottom: '1px solid #e2e8f0',
+              padding: '16px 20px',
+              borderBottom: '1px solid var(--border-hairline)',
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
+              flexWrap: 'wrap',
+              gap: 12,
             }}
           >
             <div>
-              <strong style={{ fontSize: 15 }}>
+              <div style={{ fontSize: 15, fontWeight: 500 }}>
                 {activeConversation
-                  ? `Conversation #${activeConversation.id.slice(0, 8)} (${activeConversation.customerSession})`
-                  : 'Live Support Agent Transcript'}
-              </strong>
-              <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>
-                AI bot is strictly silent while status is waiting or human
+                  ? `Conversation #${activeConversation.id.slice(0, 8)}`
+                  : 'Conversation transcript'}
+              </div>
+              <div className="sig-meta" style={{ marginTop: 2 }}>
+                {activeConversation
+                  ? `Session ${activeConversation.customerSession} · assistant muted`
+                  : 'Select a thread from the queue to inspect history'}
               </div>
             </div>
             {activeConversation && (
               <div style={{ display: 'flex', gap: 8 }}>
                 <button
                   type="button"
-                  onClick={() => handleClaim(activeConversation.id)}
-                  style={{
-                    background: '#0284c7',
-                    color: '#ffffff',
-                    border: 'none',
-                    borderRadius: 6,
-                    padding: '6px 12px',
-                    fontSize: 12,
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                  }}
+                  onClick={() => void handleClaim(activeConversation.id)}
+                  className="btn btn-accent btn-sm"
                 >
-                  Claim Chat
+                  Claim chat
                 </button>
                 <button
                   type="button"
-                  onClick={() => handleClose(activeConversation.id)}
-                  style={{
-                    background: '#e11d48',
-                    color: '#ffffff',
-                    border: 'none',
-                    borderRadius: 6,
-                    padding: '6px 12px',
-                    fontSize: 12,
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                  }}
+                  onClick={() => void handleClose(activeConversation.id)}
+                  className="btn btn-danger btn-sm"
                 >
-                  Close Chat
+                  Close chat
                 </button>
               </div>
             )}
@@ -351,101 +335,103 @@ export default function LiveAgentInboxPage() {
           <div
             style={{
               flex: 1,
-              padding: 18,
+              padding: 20,
               overflowY: 'auto',
-              background: '#f8fafc',
+              background: 'var(--bg-page)',
               display: 'flex',
               flexDirection: 'column',
-              gap: 10,
+              gap: 12,
             }}
           >
             {messages.length === 0 ? (
-              <div style={{ color: '#64748b', fontSize: 13 }}>
-                No messages in this conversation yet. Type a reply below and
-                press Send Reply!
+              <div style={{ color: 'var(--text-muted)', fontSize: 13 }}>
+                No messages in this conversation yet. Type a reply below to start.
               </div>
             ) : (
-              messages.map((msg) => (
-                <div
-                  key={msg.id}
-                  style={{
-                    alignSelf:
-                      msg.sender === 'customer' ? 'flex-start' : 'flex-end',
-                    background:
-                      msg.sender === 'agent'
-                        ? '#2563eb'
-                        : msg.sender === 'bot'
-                          ? '#f1f5f9'
-                          : '#ffffff',
-                    color: msg.sender === 'agent' ? '#ffffff' : '#0f172a',
-                    border: '1px solid #cbd5e1',
-                    borderRadius: 10,
-                    padding: '10px 14px',
-                    maxWidth: '78%',
-                  }}
-                >
+              messages.map((msg) => {
+                const isAgent = msg.sender === 'agent';
+                const isCustomer = msg.sender === 'customer';
+                const senderLabel = isAgent
+                  ? 'Agent'
+                  : isCustomer
+                    ? 'Customer'
+                    : 'Assistant';
+                return (
                   <div
+                    key={msg.id}
                     style={{
-                      fontSize: 11,
-                      fontWeight: 700,
-                      marginBottom: 4,
-                      textTransform: 'uppercase',
-                      opacity: 0.8,
+                      alignSelf: isCustomer ? 'flex-start' : 'flex-end',
+                      background: isAgent
+                        ? 'var(--text-primary)'
+                        : isCustomer
+                          ? 'var(--bg-card)'
+                          : 'var(--bg-raised)',
+                      color: isAgent ? '#ffffff' : 'var(--text-primary)',
+                      border: isAgent
+                        ? '1px solid transparent'
+                        : '1px solid var(--border-hairline)',
+                      borderRadius: 10,
+                      padding: '10px 14px',
+                      maxWidth: '76%',
                     }}
                   >
-                    {msg.sender}
-                    {typeof msg.confidence === 'number'
-                      ? ` · confidence ${(msg.confidence * 100).toFixed(0)}%`
-                      : ''}
+                    <div
+                      className="mono tabular"
+                      style={{
+                        fontSize: 11,
+                        marginBottom: 4,
+                        color: isAgent
+                          ? 'rgba(255,255,255,0.72)'
+                          : 'var(--text-muted)',
+                      }}
+                    >
+                      {senderLabel}
+                      {typeof msg.confidence === 'number'
+                        ? ` · ${Math.round(msg.confidence * 100)}% signal`
+                        : ''}
+                    </div>
+                    <div style={{ fontSize: 14, lineHeight: 1.5 }}>
+                      {msg.content}
+                    </div>
                   </div>
-                  <div style={{ fontSize: 14, lineHeight: 1.45 }}>
-                    {msg.content}
-                  </div>
-                </div>
-              ))
+                );
+              })
             )}
           </div>
 
           <form
             onSubmit={handleSendReply}
             style={{
-              padding: 14,
-              borderTop: '1px solid #e2e8f0',
+              padding: 16,
+              borderTop: '1px solid var(--border-hairline)',
+              background: 'var(--bg-card)',
               display: 'flex',
-              gap: 10,
+              gap: 12,
             }}
           >
             <input
               type="text"
+              className="input"
               value={replyText}
               onChange={(e) => setReplyText(e.target.value)}
-              placeholder="Type a real-time agent reply..."
-              style={{
-                flex: 1,
-                padding: '10px 12px',
-                borderRadius: 8,
-                border: '1px solid #cbd5e1',
-                fontSize: 14,
-              }}
+              placeholder="Write a reply to the customer"
             />
             <button
               type="submit"
               disabled={sending}
-              style={{
-                background: sending ? '#94a3b8' : '#2563eb',
-                color: '#ffffff',
-                border: 'none',
-                borderRadius: 8,
-                padding: '0 18px',
-                fontWeight: 600,
-                cursor: sending ? 'not-allowed' : 'pointer',
-              }}
+              className="btn btn-primary"
             >
-              {sending ? 'Sending...' : 'Send Reply'}
+              {sending ? 'Sending' : 'Send reply'}
             </button>
           </form>
           {validationError && (
-            <div style={{ color: '#dc2626', fontSize: 12, padding: '0 14px 10px' }}>
+            <div
+              style={{
+                color: 'var(--negative)',
+                fontSize: 12,
+                padding: '0 16px 12px',
+              }}
+            >
               {validationError}
             </div>
           )}
