@@ -7,149 +7,118 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [status, setStatus] = useState<string | null>(null);
+  const [isError, setIsError] = useState(false);
   const demoMode = isDemoModeEnabled();
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    setIsError(false);
     try {
       const result = await authApi.login({ email, password });
       setStatus(
-        `Signed in as ${result.user.email} (${result.user.role}) — Workspace: ${result.tenant.name}`,
+        `Signed in as ${result.user.email} (${result.user.role}) · ${result.tenant.name}`,
       );
     } catch {
-      setStatus('Invalid email or password.');
+      setIsError(true);
+      setStatus('Invalid email or password');
     }
   }
 
   async function handleDemoQuickLogin(demoEmail: string) {
+    setIsError(false);
     try {
       const result = await authApi.login({
         email: demoEmail,
         password: 'Password123!',
       });
-      setStatus(
-        `Switched active tenant to "${result.tenant.name}" (${result.user.email})!`,
-      );
+      setStatus(`Active workspace switched to ${result.tenant.name} (${result.user.email})`);
     } catch {
-      setStatus('Demo account is only available when DEMO_MODE is enabled.');
+      setIsError(true);
+      setStatus('Demo workspaces are unavailable in this environment');
     }
   }
 
   return (
     <div style={{ maxWidth: 440, margin: '40px auto', display: 'grid', gap: 16 }}>
-      <section
-        style={{
-          background: '#ffffff',
-          padding: 28,
-          borderRadius: 12,
-          border: '1px solid #e2e8f0',
-        }}
-      >
-        <h1 style={{ marginTop: 0, fontSize: 20 }}>Sign In to Your Workspace</h1>
-        <p style={{ color: '#64748b', fontSize: 13 }}>
-          Enter your workspace email and password to manage your support bot, knowledge base, and live agent inbox.
+      <section className="card">
+        <h1 className="page-title" style={{ fontSize: 22 }}>
+          Sign in to workspace
+        </h1>
+        <p className="card-desc">
+          Enter your workspace email and password to manage your knowledge base and live inbox.
         </p>
-        <form onSubmit={handleSubmit} style={{ display: 'grid', gap: 12 }}>
-          <input
-            type="email"
-            required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="owner@business.com"
-            style={{
-              padding: '10px 12px',
-              borderRadius: 8,
-              border: '1px solid #cbd5e1',
-            }}
-          />
-          <input
-            type="password"
-            required
-            minLength={8}
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="Password (min 8 characters)"
-            style={{
-              padding: '10px 12px',
-              borderRadius: 8,
-              border: '1px solid #cbd5e1',
-            }}
-          />
-          <button
-            type="submit"
-            style={{
-              background: '#2563eb',
-              color: '#ffffff',
-              border: 'none',
-              borderRadius: 8,
-              padding: '10px 16px',
-              fontWeight: 600,
-              cursor: 'pointer',
-            }}
-          >
-            Sign In
+        <form onSubmit={handleSubmit} style={{ display: 'grid', gap: 16 }}>
+          <div>
+            <label className="field-label" htmlFor="login-email">
+              Work email
+            </label>
+            <input
+              id="login-email"
+              type="email"
+              className="input"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="owner@business.com"
+            />
+          </div>
+          <div>
+            <label className="field-label" htmlFor="login-password">
+              Password
+            </label>
+            <input
+              id="login-password"
+              type="password"
+              className="input"
+              required
+              minLength={8}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Minimum 8 characters"
+            />
+          </div>
+          <button type="submit" className="btn btn-primary">
+            Sign in
           </button>
         </form>
         {status && (
           <div
+            className="sig-meta"
             style={{
-              marginTop: 14,
-              fontSize: 13,
-              color: '#059669',
-              fontWeight: 600,
+              marginTop: 16,
+              color: isError ? 'var(--negative)' : 'var(--positive)',
             }}
           >
-            {status}
+            <span
+              className={`sig-dot ${isError ? 'sig-dot-danger' : 'sig-dot-ready'}`}
+            />
+            <span>{status}</span>
           </div>
         )}
       </section>
 
       {demoMode && (
-        <section
-          style={{
-            background: '#f8fafc',
-            padding: 20,
-            borderRadius: 12,
-            border: '1px solid #cbd5e1',
-          }}
-        >
-          <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8 }}>
-            Quick Switch Demo Workspaces
-          </div>
-          <div style={{ display: 'flex', gap: 10 }}>
+        <section className="card" style={{ padding: 20 }}>
+          <h2 className="card-title" style={{ fontSize: 14 }}>
+            Switch demo workspace
+          </h2>
+          <p className="card-desc" style={{ marginBottom: 12 }}>
+            Verify tenant isolation between two separate seeded businesses.
+          </p>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
             <button
               type="button"
-              onClick={() => handleDemoQuickLogin('owner@oilsupply.com')}
-              style={{
-                flex: 1,
-                background: '#0284c7',
-                color: '#ffffff',
-                border: 'none',
-                borderRadius: 8,
-                padding: '9px 12px',
-                fontSize: 12,
-                fontWeight: 600,
-                cursor: 'pointer',
-              }}
+              onClick={() => void handleDemoQuickLogin('owner@oilsupply.com')}
+              className="btn btn-secondary"
             >
-              Try Demo: Oil Supply
+              Oil Supply
             </button>
             <button
               type="button"
-              onClick={() => handleDemoQuickLogin('owner@cityclinic.com')}
-              style={{
-                flex: 1,
-                background: '#059669',
-                color: '#ffffff',
-                border: 'none',
-                borderRadius: 8,
-                padding: '9px 12px',
-                fontSize: 12,
-                fontWeight: 600,
-                cursor: 'pointer',
-              }}
+              onClick={() => void handleDemoQuickLogin('owner@cityclinic.com')}
+              className="btn btn-secondary"
             >
-              Try Demo: City Clinic
+              City Clinic
             </button>
           </div>
         </section>
