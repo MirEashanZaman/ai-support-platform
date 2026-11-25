@@ -2,7 +2,27 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { AnimatePresence, motion } from 'motion/react';
+import {
+  ArrowRight,
+  Bot,
+  Database,
+  FileUp,
+  Palette,
+  Send,
+  ShieldCheck,
+  UserPlus,
+  Users,
+  Workflow,
+} from 'lucide-react';
 import { workspaceApi } from '../lib/api-client';
+import {
+  EASE_OUT_EXPO,
+  PageMotion,
+  SpotlightCard,
+  StaggerCard,
+  StaggerGrid,
+} from '../components/motion-primitives';
 
 interface PlaygroundTurn {
   question: string;
@@ -137,7 +157,7 @@ export default function DashboardHomePage() {
   }
 
   return (
-    <div className="page-stack">
+    <PageMotion>
       <div className="page-header">
         <div>
           <h1 className="page-title">Operations overview</h1>
@@ -151,13 +171,8 @@ export default function DashboardHomePage() {
         </div>
       </div>
 
-      <section className="card" style={{ padding: 20 }}>
-        <div
-          style={{
-            display: 'grid',
-            gap: 16,
-          }}
-        >
+      <SpotlightCard style={{ padding: 20 }}>
+        <div style={{ display: 'grid', gap: 16 }}>
           <div
             style={{
               display: 'grid',
@@ -169,130 +184,123 @@ export default function DashboardHomePage() {
             <span className="mono" style={{ fontSize: 12, color: 'var(--text-muted)' }}>
               01 · Ingestion flow (once per document)
             </span>
-            <div
+            <StaggerGrid
               style={{
                 display: 'grid',
                 gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
                 gap: 12,
               }}
             >
-              <Link
-                href="/documents"
-                style={{
-                  padding: '12px 16px',
-                  borderRadius: 8,
-                  background: 'var(--bg-raised)',
-                  border: '1px solid var(--border-hairline)',
-                  textDecoration: 'none',
-                }}
-              >
-                <div style={{ fontWeight: 500, fontSize: 14 }}>1. Business owner</div>
-                <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 2 }}>
-                  Uploads PDF, Markdown, TXT, or URL
+              <StaggerCard className="">
+                <Link
+                  href="/documents"
+                  className="pipeline-node"
+                  style={{ background: 'var(--bg-raised)' }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 500, fontSize: 14 }}>
+                    <FileUp size={15} strokeWidth={1.6} color="var(--text-secondary)" />
+                    <span>1. Business owner</span>
+                  </div>
+                  <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 4 }}>
+                    Uploads PDF, Markdown, TXT, or URL
+                  </div>
+                </Link>
+              </StaggerCard>
+              <StaggerCard className="">
+                <div className="pipeline-node">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 500, fontSize: 14 }}>
+                    <Workflow size={15} strokeWidth={1.6} color="var(--text-secondary)" />
+                    <span>2. Queue and worker</span>
+                  </div>
+                  <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 4 }}>
+                    Chunks text and generates embeddings
+                  </div>
                 </div>
-              </Link>
-              <div
-                style={{
-                  padding: '12px 16px',
-                  borderRadius: 8,
-                  background: 'var(--bg-card)',
-                  border: '1px solid var(--border-hairline)',
-                }}
-              >
-                <div style={{ fontWeight: 500, fontSize: 14 }}>2. Queue and worker</div>
-                <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 2 }}>
-                  Chunks text and generates embeddings
+              </StaggerCard>
+              <StaggerCard className="">
+                <div className="pipeline-node">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 500, fontSize: 14 }}>
+                    <Database size={15} strokeWidth={1.6} color="var(--text-secondary)" />
+                    <span>3. Vector store</span>
+                  </div>
+                  <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 4 }}>
+                    Tenant-isolated pgvector with RLS
+                  </div>
                 </div>
-              </div>
-              <div
-                style={{
-                  padding: '12px 16px',
-                  borderRadius: 8,
-                  background: 'var(--bg-card)',
-                  border: '1px solid var(--border-hairline)',
-                }}
-              >
-                <div style={{ fontWeight: 500, fontSize: 14 }}>3. Vector store</div>
-                <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 2 }}>
-                  Tenant-isolated pgvector with RLS
-                </div>
-              </div>
-            </div>
+              </StaggerCard>
+            </StaggerGrid>
           </div>
 
           <div style={{ display: 'grid', gap: 10 }}>
             <span className="mono" style={{ fontSize: 12, color: 'var(--text-muted)' }}>
               02 · Runtime chat flow (every customer question)
             </span>
-            <div
+            <StaggerGrid
               style={{
                 display: 'grid',
                 gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
                 gap: 12,
               }}
             >
-              <div
-                style={{
-                  padding: '12px 16px',
-                  borderRadius: 8,
-                  background: 'var(--bg-card)',
-                  border: '1px solid var(--border-hairline)',
-                }}
-              >
-                <div style={{ fontWeight: 500, fontSize: 14 }}>1. Customer question</div>
-                <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 2 }}>
-                  Submitted via Shadow DOM widget
+              <StaggerCard className="">
+                <div className="pipeline-node">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 500, fontSize: 14 }}>
+                    <Bot size={15} strokeWidth={1.6} color="var(--text-secondary)" />
+                    <span>1. Customer question</span>
+                  </div>
+                  <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 4 }}>
+                    Submitted via Shadow DOM widget
+                  </div>
                 </div>
-              </div>
-              <div
-                style={{
-                  padding: '12px 16px',
-                  borderRadius: 8,
-                  background: 'var(--bg-card)',
-                  border: '1px solid var(--border-hairline)',
-                }}
-              >
-                <div style={{ fontWeight: 500, fontSize: 14 }}>2. Search and verify</div>
-                <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 2 }}>
-                  Top tenant chunks with confidence gate
+              </StaggerCard>
+              <StaggerCard className="">
+                <div className="pipeline-node">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 500, fontSize: 14 }}>
+                    <ShieldCheck size={15} strokeWidth={1.6} color="var(--text-secondary)" />
+                    <span>2. Search and verify</span>
+                  </div>
+                  <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 4 }}>
+                    Top tenant chunks with confidence gate
+                  </div>
                 </div>
-              </div>
-              <div
-                style={{
-                  padding: '12px 16px',
-                  borderRadius: 8,
-                  background: 'var(--accent-soft)',
-                  border: '1px solid rgba(29, 78, 216, 0.18)',
-                }}
-              >
-                <div style={{ fontWeight: 500, fontSize: 14, color: 'var(--accent)' }}>
-                  3a. Cited answer
+              </StaggerCard>
+              <StaggerCard className="">
+                <div
+                  className="pipeline-node"
+                  style={{
+                    background: 'var(--accent-soft)',
+                    borderColor: 'rgba(29, 78, 216, 0.18)',
+                  }}
+                >
+                  <div style={{ fontWeight: 500, fontSize: 14, color: 'var(--accent)' }}>
+                    3a. Cited answer
+                  </div>
+                  <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 4 }}>
+                    Returned directly when grounded
+                  </div>
                 </div>
-                <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 2 }}>
-                  Returned directly when grounded
-                </div>
-              </div>
-              <Link
-                href="/inbox"
-                style={{
-                  padding: '12px 16px',
-                  borderRadius: 8,
-                  background: 'var(--bg-raised)',
-                  border: '1px solid var(--border-hairline)',
-                  textDecoration: 'none',
-                }}
-              >
-                <div style={{ fontWeight: 500, fontSize: 14 }}>3b. Human handoff</div>
-                <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 2 }}>
-                  Escalated to live inbox when unsure
-                </div>
-              </Link>
-            </div>
+              </StaggerCard>
+              <StaggerCard className="">
+                <Link
+                  href="/inbox"
+                  className="pipeline-node"
+                  style={{ background: 'var(--bg-raised)' }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontWeight: 500, fontSize: 14 }}>
+                    <span>3b. Human handoff</span>
+                    <ArrowRight size={14} strokeWidth={1.6} color="var(--text-secondary)" />
+                  </div>
+                  <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 4 }}>
+                    Escalated to live inbox when unsure
+                  </div>
+                </Link>
+              </StaggerCard>
+            </StaggerGrid>
           </div>
         </div>
-      </section>
+      </SpotlightCard>
 
-      <section className="card">
+      <SpotlightCard>
         <h2 className="card-title">Retrieval simulator</h2>
         <p className="card-desc">
           Run a test query against your workspace documents to inspect citations, heuristic confidence, and escalation behavior.
@@ -300,14 +308,15 @@ export default function DashboardHomePage() {
 
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
           {SAMPLE_PROMPTS.map((item) => (
-            <button
+            <motion.button
               key={item.label}
               type="button"
+              whileTap={{ scale: 0.97 }}
               onClick={() => void handleAskAi(item.prompt)}
               className="btn btn-secondary btn-sm"
             >
               {item.label}
-            </button>
+            </motion.button>
           ))}
         </div>
 
@@ -325,76 +334,87 @@ export default function DashboardHomePage() {
             onChange={(e) => setQuestion(e.target.value)}
             placeholder="Ask a customer question"
           />
-          <button
+          <motion.button
             type="submit"
             disabled={loading}
+            whileTap={{ scale: 0.97 }}
             className="btn btn-accent"
           >
-            {loading ? 'Running' : 'Run query'}
-          </button>
+            <Send size={14} strokeWidth={1.7} />
+            <span>{loading ? 'Running' : 'Run query'}</span>
+          </motion.button>
         </form>
 
-        {turns.length > 0 && (
-          <div style={{ display: 'grid', gap: 12, marginTop: 20 }}>
-            {turns.map((t, idx) => (
-              <div
-                key={idx}
-                style={{
-                  background: 'var(--bg-page)',
-                  border: '1px solid var(--border-hairline)',
-                  borderRadius: 8,
-                  padding: 16,
-                }}
-              >
-                <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
-                  {t.question}
-                </div>
-                <div
+        <AnimatePresence initial={false}>
+          {turns.length > 0 && (
+            <div style={{ display: 'grid', gap: 12, marginTop: 20 }}>
+              {turns.map((t, idx) => (
+                <motion.div
+                  key={`${t.question}-${turns.length - idx}`}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -6 }}
+                  transition={{ duration: 0.28, ease: EASE_OUT_EXPO }}
                   style={{
-                    fontSize: 14,
-                    color: 'var(--text-primary)',
-                    marginTop: 8,
-                    lineHeight: 1.55,
+                    background: 'var(--bg-page)',
+                    border: '1px solid var(--border-hairline)',
+                    borderRadius: 8,
+                    padding: 16,
                   }}
                 >
-                  {t.answer}
-                </div>
-                <div
-                  style={{
-                    display: 'flex',
-                    flexWrap: 'wrap',
-                    gap: 8,
-                    marginTop: 12,
-                  }}
-                >
-                  {t.citations.map((c, cIdx) => (
-                    <span key={cIdx} className="sig-tag sig-tag-accent">
-                      {c.documentName}
-                    </span>
-                  ))}
-                  {t.status === 'waiting' ? (
-                    <Link href="/inbox" className="sig-tag sig-tag-warning">
-                      <span className="sig-dot sig-dot-waiting" />
-                      <span>Escalated to inbox</span>
-                    </Link>
-                  ) : (
-                    <span className="sig-tag sig-tag-positive tabular">
-                      <span className="sig-dot sig-dot-ready" />
-                      <span>
-                        Resolved · {Math.round((t.confidence ?? 0.9) * 100)}% signal
+                  <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
+                    {t.question}
+                  </div>
+                  <div
+                    style={{
+                      fontSize: 14,
+                      color: 'var(--text-primary)',
+                      marginTop: 8,
+                      lineHeight: 1.55,
+                    }}
+                  >
+                    {t.answer}
+                  </div>
+                  <div
+                    style={{
+                      display: 'flex',
+                      flexWrap: 'wrap',
+                      gap: 8,
+                      marginTop: 12,
+                    }}
+                  >
+                    {t.citations.map((c, cIdx) => (
+                      <span key={cIdx} className="sig-tag sig-tag-accent">
+                        {c.documentName}
                       </span>
-                    </span>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
+                    ))}
+                    {t.status === 'waiting' ? (
+                      <Link href="/inbox" className="sig-tag sig-tag-warning">
+                        <span className="sig-dot sig-dot-waiting" />
+                        <span>Escalated to inbox</span>
+                      </Link>
+                    ) : (
+                      <span className="sig-tag sig-tag-positive tabular">
+                        <span className="sig-dot sig-dot-ready" />
+                        <span>
+                          Resolved · {Math.round((t.confidence ?? 0.9) * 100)}% signal
+                        </span>
+                      </span>
+                    )}
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          )}
+        </AnimatePresence>
+      </SpotlightCard>
 
       <div className="split-2-asym">
-        <section className="card">
-          <h2 className="card-title">Widget appearance</h2>
+        <SpotlightCard>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Palette size={16} strokeWidth={1.6} color="var(--text-secondary)" />
+            <h2 className="card-title">Widget appearance</h2>
+          </div>
           <p className="card-desc">
             Customize the title, accent color, and greeting displayed inside your embedded chat drawer.
           </p>
@@ -451,18 +471,34 @@ export default function DashboardHomePage() {
               />
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <button type="submit" className="btn btn-primary">
+              <motion.button
+                type="submit"
+                whileTap={{ scale: 0.97 }}
+                className="btn btn-primary"
+              >
                 Save settings
-              </button>
-              {configSavedMsg && (
-                <span className="sig-meta">{configSavedMsg}</span>
-              )}
+              </motion.button>
+              <AnimatePresence>
+                {configSavedMsg && (
+                  <motion.span
+                    initial={{ opacity: 0, x: -4 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0 }}
+                    className="sig-meta"
+                  >
+                    {configSavedMsg}
+                  </motion.span>
+                )}
+              </AnimatePresence>
             </div>
           </form>
-        </section>
+        </SpotlightCard>
 
-        <section className="card">
-          <h2 className="card-title">Workspace team</h2>
+        <SpotlightCard>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Users size={16} strokeWidth={1.6} color="var(--text-secondary)" />
+            <h2 className="card-title">Workspace team</h2>
+          </div>
           <p className="card-desc">
             Assign Owner, Agent, or read-only Viewer permissions for this tenant.
           </p>
@@ -488,9 +524,14 @@ export default function DashboardHomePage() {
                 <option value="Agent">Support agent</option>
                 <option value="Viewer">Viewer (read-only)</option>
               </select>
-              <button type="submit" className="btn btn-primary">
-                Invite
-              </button>
+              <motion.button
+                type="submit"
+                whileTap={{ scale: 0.97 }}
+                className="btn btn-primary"
+              >
+                <UserPlus size={14} strokeWidth={1.7} />
+                <span>Invite</span>
+              </motion.button>
             </div>
           </form>
           {teamMsg && (
@@ -500,8 +541,11 @@ export default function DashboardHomePage() {
           )}
           <div style={{ display: 'grid', gap: 8 }}>
             {team.map((member) => (
-              <div
+              <motion.div
                 key={member.id}
+                layout
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
                 style={{
                   height: 40,
                   display: 'flex',
@@ -516,11 +560,11 @@ export default function DashboardHomePage() {
               >
                 <span>{member.email}</span>
                 <span className="sig-tag">{member.role}</span>
-              </div>
+              </motion.div>
             ))}
           </div>
-        </section>
+        </SpotlightCard>
       </div>
-    </div>
+    </PageMotion>
   );
 }
