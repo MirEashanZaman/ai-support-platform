@@ -9,6 +9,7 @@ import {
   FileText,
   Globe,
   Inbox,
+  Layers,
   LayoutDashboard,
   LogIn,
   Plus,
@@ -24,6 +25,7 @@ const NAV_ITEMS = [
   { href: '/documents', label: 'Documents', icon: FileText },
   { href: '/inbox', label: 'Inbox', icon: Inbox },
   { href: '/analytics', label: 'Analytics', icon: BarChart3 },
+  { href: '/architecture', label: 'Architecture', icon: Layers },
   { href: `${API_BASE_URL}/widget-demo`, label: 'Customer portal', icon: Globe },
   { href: '/login', label: 'Sign in', icon: LogIn },
 ];
