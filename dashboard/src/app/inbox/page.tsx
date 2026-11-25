@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { AnimatePresence, motion } from 'motion/react';
+import { CheckCircle2, Send, UserCheck, XCircle } from 'lucide-react';
 import {
   agentReplyFormSchema,
   ChatMessageItem,
@@ -9,6 +11,10 @@ import {
   HandoffQueueItem,
 } from '../../lib/api-client';
 import { connectTenantInboxSocket } from '../../lib/socket-client';
+import {
+  EASE_OUT_EXPO,
+  PageMotion,
+} from '../../components/motion-primitives';
 
 export default function LiveAgentInboxPage() {
   const [tenantId, setTenantId] = useState<string>('');
@@ -176,7 +182,7 @@ export default function LiveAgentInboxPage() {
   const activeConversation = queue.find((q) => q.id === selectedId) ?? null;
 
   return (
-    <div className="page-stack">
+    <PageMotion>
       <div className="page-header">
         <div>
           <h1 className="page-title">Live agent inbox</h1>
@@ -220,63 +226,71 @@ export default function LiveAgentInboxPage() {
               No conversations waiting for handoff. Send a reply on the right or escalate a chat from the customer widget.
             </p>
           ) : (
-            queue.map((item) => {
-              const isSelected = item.id === selectedId;
-              const isWaiting = item.status === 'waiting';
-              return (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() => setSelectedId(item.id)}
-                  style={{
-                    textAlign: 'left',
-                    width: '100%',
-                    padding: 12,
-                    borderRadius: 8,
-                    cursor: 'pointer',
-                    border: isSelected
-                      ? '1px solid var(--accent)'
-                      : '1px solid var(--border-hairline)',
-                    background: isSelected ? 'var(--accent-soft)' : 'var(--bg-card)',
-                    transition: 'background-color 140ms var(--ease-out), border-color 140ms var(--ease-out)',
-                  }}
-                >
-                  <div
+            <AnimatePresence initial={false}>
+              {queue.map((item) => {
+                const isSelected = item.id === selectedId;
+                const isWaiting = item.status === 'waiting';
+                return (
+                  <motion.button
+                    key={item.id}
+                    layout
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -6 }}
+                    whileTap={{ scale: 0.99 }}
+                    transition={{ duration: 0.22, ease: EASE_OUT_EXPO }}
+                    type="button"
+                    onClick={() => setSelectedId(item.id)}
                     style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      gap: 8,
+                      textAlign: 'left',
+                      width: '100%',
+                      padding: 12,
+                      borderRadius: 8,
+                      cursor: 'pointer',
+                      border: isSelected
+                        ? '1px solid var(--accent)'
+                        : '1px solid var(--border-hairline)',
+                      background: isSelected ? 'var(--accent-soft)' : 'var(--bg-card)',
+                      transition: 'background-color 140ms var(--ease-out), border-color 140ms var(--ease-out)',
                     }}
                   >
-                    <span
-                      className="mono"
-                      style={{ fontSize: 12, color: 'var(--text-primary)', fontWeight: 500 }}
+                    <div
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        gap: 8,
+                      }}
                     >
-                      {item.customerSession}
-                    </span>
-                    <span className="sig-meta">
                       <span
-                        className={`sig-dot ${isWaiting ? 'sig-dot-waiting' : 'sig-dot-ready'}`}
-                      />
-                      <span>{isWaiting ? 'Waiting' : 'Human'}</span>
-                    </span>
-                  </div>
-                  <div
-                    style={{
-                      fontSize: 13,
-                      color: 'var(--text-secondary)',
-                      marginTop: 6,
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
-                    {item.lastMessagePreview || 'No messages yet'}
-                  </div>
-                </button>
-              );
-            })
+                        className="mono"
+                        style={{ fontSize: 12, color: 'var(--text-primary)', fontWeight: 500 }}
+                      >
+                        {item.customerSession}
+                      </span>
+                      <span className="sig-meta">
+                        <span
+                          className={`sig-dot ${isWaiting ? 'sig-dot-waiting' : 'sig-dot-ready'}`}
+                        />
+                        <span>{isWaiting ? 'Waiting' : 'Human'}</span>
+                      </span>
+                    </div>
+                    <div
+                      style={{
+                        fontSize: 13,
+                        color: 'var(--text-secondary)',
+                        marginTop: 6,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {item.lastMessagePreview || 'No messages yet'}
+                    </div>
+                  </motion.button>
+                );
+              })}
+            </AnimatePresence>
           )}
         </aside>
 
@@ -314,20 +328,24 @@ export default function LiveAgentInboxPage() {
             </div>
             {activeConversation && (
               <div style={{ display: 'flex', gap: 8 }}>
-                <button
+                <motion.button
                   type="button"
+                  whileTap={{ scale: 0.97 }}
                   onClick={() => void handleClaim(activeConversation.id)}
                   className="btn btn-accent btn-sm"
                 >
-                  Claim chat
-                </button>
-                <button
+                  <UserCheck size={14} strokeWidth={1.7} />
+                  <span>Claim chat</span>
+                </motion.button>
+                <motion.button
                   type="button"
+                  whileTap={{ scale: 0.97 }}
                   onClick={() => void handleClose(activeConversation.id)}
                   className="btn btn-danger btn-sm"
                 >
-                  Close chat
-                </button>
+                  <XCircle size={14} strokeWidth={1.7} />
+                  <span>Close chat</span>
+                </motion.button>
               </div>
             )}
           </div>
@@ -348,54 +366,65 @@ export default function LiveAgentInboxPage() {
                 No messages in this conversation yet. Type a reply below to start.
               </div>
             ) : (
-              messages.map((msg) => {
-                const isAgent = msg.sender === 'agent';
-                const isCustomer = msg.sender === 'customer';
-                const senderLabel = isAgent
-                  ? 'Agent'
-                  : isCustomer
-                    ? 'Customer'
-                    : 'Assistant';
-                return (
-                  <div
-                    key={msg.id}
-                    style={{
-                      alignSelf: isCustomer ? 'flex-start' : 'flex-end',
-                      background: isAgent
-                        ? 'var(--text-primary)'
-                        : isCustomer
-                          ? 'var(--bg-card)'
-                          : 'var(--bg-raised)',
-                      color: isAgent ? '#ffffff' : 'var(--text-primary)',
-                      border: isAgent
-                        ? '1px solid transparent'
-                        : '1px solid var(--border-hairline)',
-                      borderRadius: 10,
-                      padding: '10px 14px',
-                      maxWidth: '76%',
-                    }}
-                  >
-                    <div
-                      className="mono tabular"
+              <AnimatePresence initial={false}>
+                {messages.map((msg) => {
+                  const isAgent = msg.sender === 'agent';
+                  const isCustomer = msg.sender === 'customer';
+                  const senderLabel = isAgent
+                    ? 'Agent'
+                    : isCustomer
+                      ? 'Customer'
+                      : 'Assistant';
+                  return (
+                    <motion.div
+                      key={msg.id}
+                      initial={{ opacity: 0, y: 8, scale: 0.985 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      transition={{ duration: 0.24, ease: EASE_OUT_EXPO }}
                       style={{
-                        fontSize: 11,
-                        marginBottom: 4,
-                        color: isAgent
-                          ? 'rgba(255,255,255,0.72)'
-                          : 'var(--text-muted)',
+                        alignSelf: isCustomer ? 'flex-start' : 'flex-end',
+                        background: isAgent
+                          ? 'var(--text-primary)'
+                          : isCustomer
+                            ? 'var(--bg-card)'
+                            : 'var(--bg-raised)',
+                        color: isAgent ? '#ffffff' : 'var(--text-primary)',
+                        border: isAgent
+                          ? '1px solid transparent'
+                          : '1px solid var(--border-hairline)',
+                        borderRadius: 10,
+                        padding: '10px 14px',
+                        maxWidth: '76%',
                       }}
                     >
-                      {senderLabel}
-                      {typeof msg.confidence === 'number'
-                        ? ` · ${Math.round(msg.confidence * 100)}% signal`
-                        : ''}
-                    </div>
-                    <div style={{ fontSize: 14, lineHeight: 1.5 }}>
-                      {msg.content}
-                    </div>
-                  </div>
-                );
-              })
+                      <div
+                        className="mono tabular"
+                        style={{
+                          fontSize: 11,
+                          marginBottom: 4,
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 6,
+                          color: isAgent
+                            ? 'rgba(255,255,255,0.72)'
+                            : 'var(--text-muted)',
+                        }}
+                      >
+                        {isAgent && <CheckCircle2 size={12} strokeWidth={1.7} />}
+                        <span>
+                          {senderLabel}
+                          {typeof msg.confidence === 'number'
+                            ? ` · ${Math.round(msg.confidence * 100)}% signal`
+                            : ''}
+                        </span>
+                      </div>
+                      <div style={{ fontSize: 14, lineHeight: 1.5 }}>
+                        {msg.content}
+                      </div>
+                    </motion.div>
+                  );
+                })}
+              </AnimatePresence>
             )}
           </div>
 
@@ -416,13 +445,15 @@ export default function LiveAgentInboxPage() {
               onChange={(e) => setReplyText(e.target.value)}
               placeholder="Write a reply to the customer"
             />
-            <button
+            <motion.button
               type="submit"
               disabled={sending}
+              whileTap={{ scale: 0.97 }}
               className="btn btn-primary"
             >
-              {sending ? 'Sending' : 'Send reply'}
-            </button>
+              <Send size={14} strokeWidth={1.7} />
+              <span>{sending ? 'Sending' : 'Send reply'}</span>
+            </motion.button>
           </form>
           {validationError && (
             <div
@@ -437,6 +468,6 @@ export default function LiveAgentInboxPage() {
           )}
         </section>
       </div>
-    </div>
+    </PageMotion>
   );
 }
