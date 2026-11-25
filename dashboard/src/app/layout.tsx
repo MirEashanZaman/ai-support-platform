@@ -1,6 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
 import NavLinks from '../components/nav-links';
+import { MotionProvider } from '../components/motion-primitives';
 import './globals.css';
 
 export const metadata = {
@@ -17,14 +18,16 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <header className="app-header">
-          <Link href="/" className="app-brand">
-            <span className="app-brand-mark">AS</span>
-            <span>AI Support Platform</span>
-          </Link>
-          <NavLinks />
-        </header>
-        <main className="app-main">{children}</main>
+        <MotionProvider>
+          <header className="app-header">
+            <Link href="/" className="app-brand">
+              <span className="app-brand-mark">AS</span>
+              <span>AI Support Platform</span>
+            </Link>
+            <NavLinks />
+          </header>
+          <main className="app-main">{children}</main>
+        </MotionProvider>
       </body>
     </html>
   );
