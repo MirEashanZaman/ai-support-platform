@@ -137,6 +137,17 @@
       gap: 24px;
     }
 
+    @keyframes portalEnter {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
     .hero-split {
       display: grid;
       grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
@@ -146,6 +157,7 @@
       border: 1px solid var(--border-hairline);
       border-radius: 16px;
       padding: 32px;
+      animation: portalEnter 420ms var(--ease-out) both;
     }
 
     .sig-row {
@@ -243,6 +255,7 @@
       border: 1px solid var(--border-hairline);
       border-radius: 16px;
       padding: 24px;
+      animation: portalEnter 480ms var(--ease-out) 60ms both;
     }
 
     .section-head {
@@ -274,6 +287,8 @@
     }
 
     .prompt-card {
+      position: relative;
+      overflow: hidden;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
@@ -283,12 +298,33 @@
       border-radius: 10px;
       padding: 16px;
       cursor: pointer;
-      transition: background-color 140ms var(--ease-out), border-color 140ms var(--ease-out);
+      animation: portalEnter 420ms var(--ease-out) both;
+      transition: background-color 150ms var(--ease-out), border-color 150ms var(--ease-out), transform 140ms var(--ease-out);
     }
+
+    .prompt-card:nth-child(1) { animation-delay: 80ms; }
+    .prompt-card:nth-child(2) { animation-delay: 120ms; }
+    .prompt-card:nth-child(3) { animation-delay: 160ms; }
+    .prompt-card:nth-child(4) { animation-delay: 200ms; }
+    .prompt-card:nth-child(5) { animation-delay: 240ms; }
+    .prompt-card:nth-child(6) { animation-delay: 280ms; }
 
     .prompt-card:hover {
       background: var(--bg-raised);
       border-color: var(--border-strong);
+    }
+
+    .prompt-card:active {
+      transform: scale(0.985);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .hero-split,
+      .prompt-section,
+      .prompt-card {
+        animation: none !important;
+        transition: none !important;
+      }
     }
 
     .prompt-meta {
