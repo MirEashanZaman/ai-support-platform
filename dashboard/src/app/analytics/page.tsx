@@ -1,11 +1,21 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { motion } from 'motion/react';
 import {
   analyticsApi,
   AnalyticsSummary,
   ChatMessageItem,
 } from '../../lib/api-client';
+import {
+  AnimatedNumber,
+  AnimatedProgressBar,
+  EASE_OUT_EXPO,
+  PageMotion,
+  SpotlightCard,
+  StaggerCard,
+  StaggerGrid,
+} from '../../components/motion-primitives';
 
 export default function AnalyticsPage() {
   const [summary, setSummary] = useState<AnalyticsSummary>({
@@ -51,7 +61,7 @@ export default function AnalyticsPage() {
   const escalatedShare = 100 - botShare;
 
   return (
-    <div className="page-stack">
+    <PageMotion>
       <div className="page-header">
         <div>
           <h1 className="page-title">Analytics and quotas</h1>
@@ -65,28 +75,26 @@ export default function AnalyticsPage() {
         </div>
       </div>
 
-      <div className="stats-row">
-        <div className="card" style={{ padding: 20 }}>
+      <StaggerGrid className="stats-row">
+        <StaggerCard style={{ padding: 20 }}>
           <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
             Total conversations
           </div>
           <div
-            className="tabular"
             style={{ fontSize: 32, fontWeight: 500, lineHeight: 1.1, marginTop: 10 }}
           >
-            {summary.totalChats}
+            <AnimatedNumber value={summary.totalChats} />
           </div>
           <div className="sig-meta tabular" style={{ marginTop: 8 }}>
             All tenant sessions
           </div>
-        </div>
+        </StaggerCard>
 
-        <div className="card" style={{ padding: 20 }}>
+        <StaggerCard style={{ padding: 20 }}>
           <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
             Bot resolution rate
           </div>
           <div
-            className="tabular"
             style={{
               fontSize: 32,
               fontWeight: 500,
@@ -95,45 +103,43 @@ export default function AnalyticsPage() {
               color: 'var(--accent)',
             }}
           >
-            {summary.resolutionRate}%
+            <AnimatedNumber value={summary.resolutionRate} suffix="%" />
           </div>
           <div className="sig-meta tabular" style={{ marginTop: 8 }}>
             {summary.botResolvedChats} resolved · {summary.escalatedChats} escalated
           </div>
-        </div>
+        </StaggerCard>
 
-        <div className="card" style={{ padding: 20 }}>
+        <StaggerCard style={{ padding: 20 }}>
           <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
             Average response time
           </div>
           <div
-            className="tabular"
             style={{ fontSize: 32, fontWeight: 500, lineHeight: 1.1, marginTop: 10 }}
           >
-            {summary.averageResponseTimeMs} ms
+            <AnimatedNumber value={summary.averageResponseTimeMs} suffix=" ms" />
           </div>
           <div className="sig-meta tabular" style={{ marginTop: 8 }}>
             2,800 ms timeout cap
           </div>
-        </div>
+        </StaggerCard>
 
-        <div className="card" style={{ padding: 20 }}>
+        <StaggerCard style={{ padding: 20 }}>
           <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
             Monthly message quota
           </div>
           <div
-            className="tabular"
             style={{ fontSize: 32, fontWeight: 500, lineHeight: 1.1, marginTop: 10 }}
           >
-            {quotaPercent}%
+            <AnimatedNumber value={quotaPercent} suffix="%" />
           </div>
           <div className="sig-meta tabular" style={{ marginTop: 8 }}>
             {summary.monthlyQuotaUsed} / {summary.monthlyQuotaLimit} messages
           </div>
-        </div>
-      </div>
+        </StaggerCard>
+      </StaggerGrid>
 
-      <section className="card">
+      <SpotlightCard>
         <div
           style={{
             display: 'flex',
@@ -141,7 +147,7 @@ export default function AnalyticsPage() {
             alignItems: 'baseline',
             flexWrap: 'wrap',
             gap: 8,
-            marginBottom: 12,
+            marginBottom: 16,
           }}
         >
           <h2 className="card-title">Resolution split and quota consumption</h2>
@@ -175,16 +181,14 @@ export default function AnalyticsPage() {
                 display: 'flex',
               }}
             >
-              <div
+              <motion.div
+                initial={{ scaleX: 0 }}
+                animate={{ scaleX: botShare / 100 }}
+                transition={{ duration: 0.7, ease: EASE_OUT_EXPO }}
                 style={{
-                  width: `${botShare}%`,
+                  width: '100%',
+                  transformOrigin: 'left center',
                   background: 'var(--accent)',
-                }}
-              />
-              <div
-                style={{
-                  width: `${escalatedShare}%`,
-                  background: '#d4d4d8',
                 }}
               />
             </div>
@@ -203,29 +207,16 @@ export default function AnalyticsPage() {
               <span>Tenant quota utilization</span>
               <span className="mono tabular">{quotaPercent}%</span>
             </div>
-            <div
-              style={{
-                height: 10,
-                background: 'var(--bg-raised)',
-                borderRadius: 6,
-                overflow: 'hidden',
-              }}
-            >
-              <div
-                style={{
-                  width: `${quotaPercent}%`,
-                  height: '100%',
-                  background:
-                    quotaPercent > 90 ? 'var(--negative)' : 'var(--text-primary)',
-                }}
-              />
-            </div>
+            <AnimatedProgressBar
+              percent={quotaPercent}
+              color={quotaPercent > 90 ? 'var(--negative)' : 'var(--text-primary)'}
+            />
           </div>
         </div>
-      </section>
+      </SpotlightCard>
 
       <div className="split-2-asym">
-        <section className="card">
+        <SpotlightCard>
           <h2 className="card-title">Top customer questions</h2>
           <p className="card-desc">
             Most frequent inquiries asked across your embedded widget and simulator.
@@ -237,8 +228,15 @@ export default function AnalyticsPage() {
           ) : (
             <div style={{ display: 'grid', gap: 8 }}>
               {summary.topQuestions.map((q, idx) => (
-                <div
+                <motion.div
                   key={idx}
+                  initial={{ opacity: 0, x: -6 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{
+                    duration: 0.25,
+                    delay: Math.min(idx * 0.04, 0.24),
+                    ease: EASE_OUT_EXPO,
+                  }}
                   style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -253,13 +251,13 @@ export default function AnalyticsPage() {
                 >
                   <span>{q.question}</span>
                   <span className="sig-tag tabular">{q.count}x</span>
-                </div>
+                </motion.div>
               ))}
             </div>
           )}
-        </section>
+        </SpotlightCard>
 
-        <section className="card">
+        <SpotlightCard>
           <h2 className="card-title">Unanswered questions</h2>
           <p className="card-desc">
             Escalated inquiries with no matching document chunk. Upload docs covering these topics.
@@ -270,9 +268,16 @@ export default function AnalyticsPage() {
             </p>
           ) : (
             <div style={{ display: 'grid', gap: 8 }}>
-              {unanswered.map((m) => (
-                <div
+              {unanswered.map((m, idx) => (
+                <motion.div
                   key={m.id}
+                  initial={{ opacity: 0, x: -6 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{
+                    duration: 0.25,
+                    delay: Math.min(idx * 0.04, 0.24),
+                    ease: EASE_OUT_EXPO,
+                  }}
                   style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -286,12 +291,12 @@ export default function AnalyticsPage() {
                 >
                   <span className="sig-dot sig-dot-waiting" />
                   <span>{m.content}</span>
-                </div>
+                </motion.div>
               ))}
             </div>
           )}
-        </section>
+        </SpotlightCard>
       </div>
-    </div>
+    </PageMotion>
   );
 }
