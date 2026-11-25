@@ -1,6 +1,17 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { AnimatePresence, motion } from 'motion/react';
+import {
+  Check,
+  ChevronDown,
+  Code2,
+  Copy,
+  FileText,
+  Search,
+  Trash2,
+  Upload,
+} from 'lucide-react';
 import {
   DocumentChunkItem,
   DocumentItem,
@@ -8,6 +19,11 @@ import {
   getStoredTenantInfo,
   workspaceApi,
 } from '../../lib/api-client';
+import {
+  EASE_OUT_EXPO,
+  PageMotion,
+  SpotlightCard,
+} from '../../components/motion-primitives';
 
 export default function DocumentsPage() {
   const [documents, setDocuments] = useState<DocumentItem[]>([]);
@@ -170,7 +186,7 @@ export default function DocumentsPage() {
   }
 
   return (
-    <div className="page-stack">
+    <PageMotion>
       <div className="page-header">
         <div>
           <h1 className="page-title">Documents and widget</h1>
@@ -184,8 +200,11 @@ export default function DocumentsPage() {
         </div>
       </div>
 
-      <section className="card">
-        <h2 className="card-title">Website widget embed code</h2>
+      <SpotlightCard>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <Code2 size={16} strokeWidth={1.6} color="var(--text-secondary)" />
+          <h2 className="card-title">Website widget embed code</h2>
+        </div>
         <p className="card-desc">
           Paste this tag before the closing <code className="mono">&lt;/body&gt;</code> tag of your website.
         </p>
@@ -205,19 +224,28 @@ export default function DocumentsPage() {
           >
             {embedScriptTag}
           </code>
-          <button
+          <motion.button
             type="button"
+            whileTap={{ scale: 0.97 }}
             onClick={handleCopyScriptTag}
             className={copiedScript ? 'btn btn-primary' : 'btn btn-accent'}
           >
-            {copiedScript ? 'Copied' : 'Copy code'}
-          </button>
+            {copiedScript ? (
+              <Check size={14} strokeWidth={2} />
+            ) : (
+              <Copy size={14} strokeWidth={1.7} />
+            )}
+            <span>{copiedScript ? 'Copied' : 'Copy code'}</span>
+          </motion.button>
         </div>
-      </section>
+      </SpotlightCard>
 
       <div className="split-2-asym">
-        <section className="card">
-          <h2 className="card-title">Add knowledge document</h2>
+        <SpotlightCard>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Upload size={16} strokeWidth={1.6} color="var(--text-secondary)" />
+            <h2 className="card-title">Add knowledge document</h2>
+          </div>
           <p className="card-desc">
             Upload a PDF, Markdown, or TXT file (up to 10 MB), add a web URL, or paste text directly.
           </p>
@@ -292,16 +320,35 @@ export default function DocumentsPage() {
             />
 
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <button type="submit" className="btn btn-primary">
-                Upload and index
-              </button>
-              {statusMessage && <span className="sig-meta">{statusMessage}</span>}
+              <motion.button
+                type="submit"
+                whileTap={{ scale: 0.97 }}
+                className="btn btn-primary"
+              >
+                <Upload size={14} strokeWidth={1.7} />
+                <span>Upload and index</span>
+              </motion.button>
+              <AnimatePresence>
+                {statusMessage && (
+                  <motion.span
+                    initial={{ opacity: 0, x: -4 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0 }}
+                    className="sig-meta"
+                  >
+                    {statusMessage}
+                  </motion.span>
+                )}
+              </AnimatePresence>
             </div>
           </form>
-        </section>
+        </SpotlightCard>
 
-        <section className="card">
-          <h2 className="card-title">Verify uploaded knowledge</h2>
+        <SpotlightCard>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Search size={16} strokeWidth={1.6} color="var(--text-secondary)" />
+            <h2 className="card-title">Verify uploaded knowledge</h2>
+          </div>
           <p className="card-desc">
             Ask a question from your newly uploaded PDF or Markdown file to confirm retrieval and citations.
           </p>
@@ -314,63 +361,72 @@ export default function DocumentsPage() {
               placeholder="Ask a question from your documents"
             />
             <div>
-              <button
+              <motion.button
                 type="submit"
                 disabled={testLoading}
+                whileTap={{ scale: 0.97 }}
                 className="btn btn-accent"
               >
-                {testLoading ? 'Searching' : 'Test retrieval'}
-              </button>
+                <Search size={14} strokeWidth={1.7} />
+                <span>{testLoading ? 'Searching' : 'Test retrieval'}</span>
+              </motion.button>
             </div>
           </form>
 
-          {testResult && (
-            <div
-              style={{
-                marginTop: 16,
-                background: 'var(--bg-page)',
-                border: '1px solid var(--border-hairline)',
-                borderRadius: 8,
-                padding: 16,
-              }}
-            >
-              <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
-                {testResult.question}
-              </div>
-              <div
+          <AnimatePresence>
+            {testResult && (
+              <motion.div
+                key={testResult.question + testResult.answer.slice(0, 12)}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -4 }}
+                transition={{ duration: 0.28, ease: EASE_OUT_EXPO }}
                 style={{
-                  fontSize: 14,
-                  color: 'var(--text-primary)',
-                  marginTop: 8,
-                  lineHeight: 1.55,
+                  marginTop: 16,
+                  background: 'var(--bg-page)',
+                  border: '1px solid var(--border-hairline)',
+                  borderRadius: 8,
+                  padding: 16,
                 }}
               >
-                {testResult.answer}
-              </div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 12 }}>
-                {testResult.citations.map((c, idx) => (
-                  <span key={idx} className="sig-tag sig-tag-accent">
-                    {c.documentName}
-                  </span>
-                ))}
-                {testResult.status === 'waiting' ? (
-                  <span className="sig-tag sig-tag-warning">
-                    <span className="sig-dot sig-dot-waiting" />
-                    <span>Escalated to inbox</span>
-                  </span>
-                ) : (
-                  <span className="sig-tag sig-tag-positive tabular">
-                    <span className="sig-dot sig-dot-ready" />
-                    <span>{Math.round((testResult.confidence ?? 0.9) * 100)}% signal</span>
-                  </span>
-                )}
-              </div>
-            </div>
-          )}
-        </section>
+                <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
+                  {testResult.question}
+                </div>
+                <div
+                  style={{
+                    fontSize: 14,
+                    color: 'var(--text-primary)',
+                    marginTop: 8,
+                    lineHeight: 1.55,
+                  }}
+                >
+                  {testResult.answer}
+                </div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 12 }}>
+                  {testResult.citations.map((c, idx) => (
+                    <span key={idx} className="sig-tag sig-tag-accent">
+                      {c.documentName}
+                    </span>
+                  ))}
+                  {testResult.status === 'waiting' ? (
+                    <span className="sig-tag sig-tag-warning">
+                      <span className="sig-dot sig-dot-waiting" />
+                      <span>Escalated to inbox</span>
+                    </span>
+                  ) : (
+                    <span className="sig-tag sig-tag-positive tabular">
+                      <span className="sig-dot sig-dot-ready" />
+                      <span>{Math.round((testResult.confidence ?? 0.9) * 100)}% signal</span>
+                    </span>
+                  )}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </SpotlightCard>
       </div>
 
-      <section className="card">
+      <SpotlightCard>
         <div
           style={{
             display: 'flex',
@@ -379,7 +435,10 @@ export default function DocumentsPage() {
             marginBottom: 16,
           }}
         >
-          <h2 className="card-title">Indexed documents</h2>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <FileText size={16} strokeWidth={1.6} color="var(--text-secondary)" />
+            <h2 className="card-title">Indexed documents</h2>
+          </div>
           <span className="sig-meta tabular">{documents.length} total</span>
         </div>
 
@@ -395,8 +454,12 @@ export default function DocumentsPage() {
               const isLoadingChunks = loadingChunksDocId === doc.id;
 
               return (
-                <div
+                <motion.div
                   key={doc.id}
+                  layout
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.25, ease: EASE_OUT_EXPO }}
                   style={{
                     borderRadius: 8,
                     border: '1px solid var(--border-hairline)',
@@ -432,81 +495,100 @@ export default function DocumentsPage() {
                       </div>
                     </div>
                     <div style={{ display: 'flex', gap: 8 }}>
-                      <button
+                      <motion.button
                         type="button"
+                        whileTap={{ scale: 0.97 }}
                         onClick={() => void handleToggleChunks(doc.id)}
                         className="btn btn-secondary btn-sm"
                       >
-                        {isExpanded ? 'Hide text' : 'View indexed text'}
-                      </button>
-                      <button
+                        <motion.span
+                          animate={{ rotate: isExpanded ? 180 : 0 }}
+                          transition={{ duration: 0.2, ease: EASE_OUT_EXPO }}
+                          style={{ display: 'inline-flex' }}
+                        >
+                          <ChevronDown size={14} strokeWidth={1.7} />
+                        </motion.span>
+                        <span>
+                          {isExpanded ? 'Hide text' : 'View indexed text'}
+                        </span>
+                      </motion.button>
+                      <motion.button
                         type="button"
+                        whileTap={{ scale: 0.97 }}
                         onClick={() => void handleDelete(doc.id)}
                         className="btn btn-danger btn-sm"
                       >
-                        Delete
-                      </button>
+                        <Trash2 size={13} strokeWidth={1.7} />
+                        <span>Delete</span>
+                      </motion.button>
                     </div>
                   </div>
 
-                  {isExpanded && (
-                    <div
-                      style={{
-                        background: 'var(--bg-page)',
-                        borderTop: '1px solid var(--border-hairline)',
-                        padding: 16,
-                        display: 'grid',
-                        gap: 8,
-                      }}
-                    >
-                      <div className="sig-meta tabular">
-                        <span>Extracted chunks ({docChunks.length})</span>
-                      </div>
-                      {isLoadingChunks ? (
-                        <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>
-                          Loading chunks
-                        </div>
-                      ) : docChunks.length === 0 ? (
-                        <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>
-                          No text chunks were extracted from this document.
-                        </div>
-                      ) : (
-                        docChunks.map((chunk) => (
-                          <div
-                            key={chunk.id}
-                            style={{
-                              background: 'var(--bg-card)',
-                              border: '1px solid var(--border-hairline)',
-                              borderRadius: 6,
-                              padding: 12,
-                              fontSize: 13,
-                              lineHeight: 1.55,
-                              color: 'var(--text-primary)',
-                              whiteSpace: 'pre-wrap',
-                            }}
-                          >
-                            <div
-                              className="mono"
-                              style={{
-                                fontSize: 11,
-                                color: 'var(--text-muted)',
-                                marginBottom: 4,
-                              }}
-                            >
-                              Chunk {chunk.chunkIndex + 1}
-                            </div>
-                            {chunk.content}
+                  <AnimatePresence initial={false}>
+                    {isExpanded && (
+                      <motion.div
+                        key="chunk-drawer"
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.28, ease: EASE_OUT_EXPO }}
+                        style={{
+                          overflow: 'hidden',
+                          background: 'var(--bg-page)',
+                          borderTop: '1px solid var(--border-hairline)',
+                        }}
+                      >
+                        <div style={{ padding: 16, display: 'grid', gap: 8 }}>
+                          <div className="sig-meta tabular">
+                            <span>Extracted chunks ({docChunks.length})</span>
                           </div>
-                        ))
-                      )}
-                    </div>
-                  )}
-                </div>
+                          {isLoadingChunks ? (
+                            <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>
+                              Loading chunks
+                            </div>
+                          ) : docChunks.length === 0 ? (
+                            <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>
+                              No text chunks were extracted from this document.
+                            </div>
+                          ) : (
+                            docChunks.map((chunk) => (
+                              <div
+                                key={chunk.id}
+                                style={{
+                                  background: 'var(--bg-card)',
+                                  border: '1px solid var(--border-hairline)',
+                                  borderRadius: 6,
+                                  padding: 12,
+                                  fontSize: 13,
+                                  lineHeight: 1.55,
+                                  color: 'var(--text-primary)',
+                                  whiteSpace: 'pre-wrap',
+                                }}
+                              >
+                                <div
+                                  className="mono"
+                                  style={{
+                                    fontSize: 11,
+                                    color: 'var(--text-muted)',
+                                    marginBottom: 4,
+                                  }}
+                                >
+                                  Chunk {chunk.chunkIndex + 1}
+                                </div>
+                                {chunk.content}
+                              </div>
+                            ))
+                          )}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </motion.div>
               );
             })}
           </div>
         )}
-      </section>
-    </div>
+      </SpotlightCard>
+    </PageMotion>
   );
 }
