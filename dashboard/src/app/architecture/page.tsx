@@ -159,7 +159,7 @@ export default function ArchitectureStaticPage() {
               alignItems: 'center',
               flexWrap: 'wrap',
               gap: 12,
-              padding: '12px 14px',
+              padding: '12px 16px',
               borderRadius: 8,
               background: 'var(--bg-page)',
               border: '1px solid var(--border-hairline)',
@@ -187,7 +187,7 @@ export default function ArchitectureStaticPage() {
               alignItems: 'center',
               flexWrap: 'wrap',
               gap: 12,
-              padding: '12px 14px',
+              padding: '12px 16px',
               borderRadius: 8,
               background: 'var(--bg-page)',
               border: '1px solid var(--border-hairline)',
@@ -198,15 +198,12 @@ export default function ArchitectureStaticPage() {
                 Server-Side Rendering (SSR)
               </div>
               <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
-                Per-request Node.js server fetch checking live backend health and tenant telemetry before streaming HTML.
+                Per-request Node.js server fetch checking live backend health before streaming HTML.
               </div>
             </div>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               <Link href="/analytics" className="sig-tag sig-tag-accent">
                 /analytics
-              </Link>
-              <Link href="/" className="sig-tag sig-tag-accent">
-                / (Overview)
               </Link>
             </div>
           </div>
@@ -218,7 +215,7 @@ export default function ArchitectureStaticPage() {
               alignItems: 'center',
               flexWrap: 'wrap',
               gap: 12,
-              padding: '12px 14px',
+              padding: '12px 16px',
               borderRadius: 8,
               background: 'var(--bg-page)',
               border: '1px solid var(--border-hairline)',
@@ -233,6 +230,9 @@ export default function ArchitectureStaticPage() {
               </div>
             </div>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              <Link href="/" className="sig-tag">
+                / (Overview)
+              </Link>
               <Link href="/inbox" className="sig-tag">
                 /inbox
               </Link>
